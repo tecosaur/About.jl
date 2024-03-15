@@ -38,12 +38,12 @@ function columnlist(io::IO, entries::Vector{<:AbstractString};
     thecolwidths = Int[]
     for ncols in 1:maxcols
         columns = Vector{eltype(entries)}[]
-        for col in Iterators.partition(entries, length(entries) ÷ ncols)
+        for col in Iterators.partition(entries, div(length(entries), ncols, RoundUp))
             push!(columns, collect(col))
         end
         widths = map.(textwidth, columns)
         colwidths = map(maximum, widths)
-        if sum(colwidths) + ncols * textwidth(prefix) + (1 - ncols) * spacing > maxwidth
+        if sum(colwidths) + ncols * textwidth(prefix) + (ncols - 1) * spacing > maxwidth
             break
         else
             thecolumns, thecolwidths = columns, colwidths
