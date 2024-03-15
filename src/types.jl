@@ -13,14 +13,18 @@ end
 
 function structinfo(T::Type)
     map(1:fieldcount(T)) do i
-        if hassizeof(T) && hassizeof(fieldtype(T, i))
+        if hassizeof(T)
             offset = fieldoffset(T, i) |> Int
             size = Int(if i < fieldcount(T)
                            fieldoffset(T, i+1)
                     else
                            sizeof(T)
                     end - fieldoffset(T, i))
-            contentsize = sizeof(fieldtype(T, i))
+            contentsize = if hassizeof(fieldtype(T, i))
+                sizeof(fieldtype(T, i))
+            else
+                0
+            end
             if contentsize > size # Pointer?
                 contentsize = 0
             end
