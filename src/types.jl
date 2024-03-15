@@ -11,19 +11,24 @@ struct FieldInfo
     type::Type
 end
 
-function structinfo(T::DataType)
+function structinfo(T::Type)
     map(1:fieldcount(T)) do i
-        size = Int(if i < fieldcount(T)
-                       fieldoffset(T, i+1)
-                   else
-                       sizeof(T)
-                   end - fieldoffset(T, i))
-        contentsize = try sizeof(fieldtype(T, i)) catch _ 0 end
-        if contentsize > size # Pointer?
-            contentsize = 0
+        if hassizeof(T) && hassizeof(fieldtype(T, i))
+            offset = fieldoffset(T, i) |> Int
+            size = Int(if i < fieldcount(T)
+                           fieldoffset(T, i+1)
+                    else
+                           sizeof(T)
+                    end - fieldoffset(T, i))
+            contentsize = sizeof(fieldtype(T, i))
+            if contentsize > size # Pointer?
+                contentsize = 0
+            end
+        else
+            offset = size = contentsize = -1 # Cannot deduce easily
         end
         FieldInfo(i, FACE_CYCLE[i % length(FACE_CYCLE) + 1],
-                  fieldoffset(T, i) |> Int, # offset
+                  offset,
                   size, contentsize,
                   contentsize == 0, # ispointer
                   fieldname(T, i), fieldtype(T, i))
@@ -45,8 +50,9 @@ function about(io::IO, type::Type)
         print(io, "singleton ")
     end
     print(Base.summary(type))
-    println(io, styled" defined in {bright_red:$(type.name.module)}, $(join(humansize(sizeof(type))))",
-            "\n  ", supertypestr(type))
+    print(io, styled" defined in {bright_red:$(parentmodule(type))}, ")
+    hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
+    println(io, "\n  ", supertypestr(type))
     (!isstructtype(type) || fieldcount(type) == 0) && return
     println(io, styled"\nStruct with {bold:$(fieldcount(type))} fields:")
     fieldinfo = AnnotatedString[]

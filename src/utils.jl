@@ -10,6 +10,12 @@ function humansize(bytes::Integer)
     end, units[1+magnitude]
 end
 
+function hassizeof(type::Type)
+    !isconcretetype(type) && return false
+    type in (Symbol, String, Core.SimpleVector) && return false
+    true
+end
+
 function cpad(s, n::Integer, pad::Union{AbstractString, AbstractChar}=' ', r::RoundingMode = RoundToZero)
     rpad(lpad(s, div(n+textwidth(s), 2, r), pad), n, pad)
 end
