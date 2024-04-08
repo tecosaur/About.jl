@@ -94,6 +94,7 @@ function memorylayout(io::IO, type::DataType)
     bars = AnnotatedString[]
     descs = AnnotatedString[]
     for (; i, size, contentsize, ispointer) in si
+        size == 0 && continue
         color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
         width = max(2, memscale * size÷memstep)
         color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
