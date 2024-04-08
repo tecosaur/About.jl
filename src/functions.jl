@@ -20,6 +20,23 @@ function about(io::IO, fn::Function)
     print(io, ".\n")
 end
 
+function about(io::IO, @nospecialize(cfn::ComposedFunction))
+    print(io, styled"{bold:Composed function:} ")
+    fnstack = Function[]
+    function decompose!(fnstk, c::ComposedFunction)
+        decompose!(fnstk, c.outer)
+        decompose!(fnstk, c.inner)
+    end
+    decompose!(fnstk, c::Function) = push!(fnstk, c)
+    decompose!(fnstack, cfn)
+    join(io, map(f -> styled"{julia_funcall:$f}", fnstack), styled" {julia_operator:∘} ")
+    println(io)
+    for fn in fnstack
+        print(io, styled" {emphasis:•} ")
+        about(io, fn)
+    end
+end
+
 function about(io::IO, method::Method)
     fn, sig = first(method.sig.types).instance, Tuple{map(Base.unwrap_unionall, method.sig.types[2:end])...}
     show(io, method)
