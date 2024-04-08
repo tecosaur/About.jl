@@ -28,7 +28,12 @@ function memorylayout(io::IO, value::T) where {T}
         print(io, "«struct»")
         return
     end
+    if Base.issingletontype(T)
+        println(io, styled"{italic:singelton}")
+        return
+    end
     sinfo = structinfo(T)
+    isempty(sinfo) && return
     ffaces = Union{Face, Symbol}[]
     fnames = String[]
     ftypes = String[]
@@ -41,7 +46,11 @@ function memorylayout(io::IO, value::T) where {T}
         push!(ftypes, string(type))
         push!(fsizes, join(humansize(size)))
         aio = AnnotatedIOBuffer()
-        if ispointer
+        if Base.issingletontype(type)
+            push!(freprs, styled"{shadow:singleton}")
+        elseif size == 0
+            push!(freprs, styled"{error:??}")
+        elseif ispointer
             try
                 pt = pointer(getfield(value, name))
                 push!(freprs, styled"{$POINTER_FACE,light:$pt}")
