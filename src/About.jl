@@ -2,6 +2,7 @@ module About
 
 using Base: AnnotatedString, AnnotatedIOBuffer
 using StyledStrings: @styled_str, Face, face!
+using JuliaSyntaxHighlighting: highlight
 using InteractiveUtils
 
 export about

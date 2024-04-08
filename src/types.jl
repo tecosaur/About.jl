@@ -83,7 +83,7 @@ function about(io::IO, type::Type)
 end
 
 supertypestr(type::Type) =
-    join(string.(supertypes(type)), styled" {red:<:} ")
+    join(string.(supertypes(type)), styled" {julia_comparator:<:} ")
 
 function memorylayout(io::IO, type::DataType)
     si = structinfo(type)
