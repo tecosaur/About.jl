@@ -54,9 +54,10 @@ function about(io::IO, type::Type)
     print(Base.summary(type))
     print(io, styled" defined in {about_module:$(parentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
-    println(io, "\n  ", supertypestr(type))
+    print(io, "\n  ")
+    supertypeinfo(io, type)
     (!isstructtype(type) || fieldcount(type) == 0) && return
-    println(io, styled"\nStruct with {bold:$(fieldcount(type))} fields:")
+    println(io, styled"\n\nStruct with {bold:$(fieldcount(type))} fields:")
     fieldinfo = AnnotatedString[]
     if type isa DataType
         sinfo = structinfo(type)
@@ -80,8 +81,11 @@ function about(io::IO, type::Type)
     end
 end
 
-supertypestr(type::Type) =
-    join(string.(supertypes(type)), styled" {julia_comparator:<:} ")
+function supertypeinfo(io::IO, type::Type)
+    typestr(t) = highlight(sprint(show, Base.unwrap_unionall(t)))
+    join(io, map(typestr, supertypes(type)),
+         styled" {julia_comparator:<:} ")
+end
 
 function memorylayout(io::IO, type::DataType)
     si = structinfo(type)

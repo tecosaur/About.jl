@@ -13,8 +13,9 @@ function about(io::IO, value::T) where {T}
     if indirectbytes > directbytes
         print(io, styled" referencing {bold:$(join(humansize(indirectbytes)))}")
     end
-    print(io, styled" ({julia_comparator:<:} ", supertypestr(supertype(T)), ")")
-    println(io)
+    print(io, styled" ({julia_comparator:<:} ")
+    supertypeinfo(io, supertype(T))
+    println(io, ")")
     memorylayout(io, value)
 end
 
