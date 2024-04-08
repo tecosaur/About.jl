@@ -53,9 +53,9 @@ function memorylayout(io::IO, value::T) where {T}
         elseif ispointer
             try
                 pt = pointer(getfield(value, name))
-                push!(freprs, styled"{$POINTER_FACE,light:$pt}")
+                push!(freprs, styled"{about_pointer,light:$pt}")
             catch
-                push!(freprs, styled"{$POINTER_FACE:Ptr?}")
+                push!(freprs, styled"{about_pointer:Ptr?}")
             end
         else
             memorylayout(IOContext(aio, :compact => true), getfield(value, name))

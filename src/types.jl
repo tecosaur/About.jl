@@ -1,5 +1,3 @@
-const POINTER_FACE = :cyan # should not appear in `FACE_CYCLE`
-
 struct FieldInfo
     i::Int
     face::Union{Symbol, Face}
@@ -54,7 +52,7 @@ function about(io::IO, type::Type)
         print(io, "singleton ")
     end
     print(Base.summary(type))
-    print(io, styled" defined in {bright_red:$(parentmodule(type))}, ")
+    print(io, styled" defined in {about_module:$(parentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     println(io, "\n  ", supertypestr(type))
     (!isstructtype(type) || fieldcount(type) == 0) && return
@@ -64,7 +62,7 @@ function about(io::IO, type::Type)
         sinfo = structinfo(type)
         namepad = maximum(fi -> textwidth(string(fi.name)), sinfo) + 1
         for (; face, name, type, ispointer) in sinfo
-            push!(fieldinfo, rpad(styled"{$face:$name}", namepad) * styled"{$POINTER_FACE:$(ifelse(ispointer, \"*\", \" \"))}$type")
+            push!(fieldinfo, rpad(styled"{$face:$name}", namepad) * styled"{about_pointer:$(ifelse(ispointer, \"*\", \" \"))}$type")
         end
     else
         for (; name, type) in structinfo(type)
@@ -121,7 +119,7 @@ function memorylayout(io::IO, type::DataType)
     end
     multirow_wrap(io, permutedims(hcat(bars, descs)))
     if any(getfield.(si, :ispointer))
-        print(io, styled"\n {$POINTER_FACE:*} = {$POINTER_FACE:Pointer} {light:(8B)}")
+        print(io, styled"\n {about_pointer:*} = {about_pointer:Pointer} {light:(8B)}")
     end
     println(io)
 end

@@ -1,7 +1,7 @@
 module About
 
 using Base: AnnotatedString, AnnotatedIOBuffer
-using StyledStrings: @styled_str, Face, face!
+using StyledStrings: @styled_str, Face, face!, addface!
 using JuliaSyntaxHighlighting: highlight
 using InteractiveUtils
 
@@ -30,5 +30,12 @@ function about(xs...)
         about(stderr, xs...)
     end
 end
+
+const ABOUT_FACES = [
+    :about_module => Face(foreground=:bright_red),
+    :about_pointer => Face(foreground=:cyan),
+]
+
+__init__() = foreach(addface!, ABOUT_FACES)
 
 end

@@ -3,11 +3,11 @@ function about(io::IO, fn::Function)
     methodmodules = getproperty.(methods(fn).ms, :module)
     others = setdiff(methodmodules, [source])
     fn_name, fn_extra = split(Base.summary(fn), ' ', limit=2)
-    print(io, styled"{julia_funcall:$fn_name} $fn_extra\n Defined in {bright_red:$source}")
+    print(io, styled"{julia_funcall:$fn_name} $fn_extra\n Defined in {about_module:$source}")
     if length(others) > 0
         print(io, styled"{shadow:({emphasis:$(sum(Ref(source) .=== methodmodules))})} extended in ")
         for (i, oth) in enumerate(others)
-            print(io, styled"{bright_red:$oth}{shadow:({emphasis:$(sum(Ref(oth) .=== methodmodules))})}")
+            print(io, styled"{about_module:$oth}{shadow:({emphasis:$(sum(Ref(oth) .=== methodmodules))})}")
             if length(others) == 2 && i == 1
                 print(io, " and ")
             elseif length(others) > 2 && i < length(others)-1
