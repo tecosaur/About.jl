@@ -99,10 +99,9 @@ function memorylayout(io::IO, type::DataType)
         size == 0 && continue
         color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
         width = max(2, memscale * size÷memstep)
-        color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
         fsize, funits = humansize(size)
         desc = if ispointer
-            cpad(styled" {$color:*} ", width)
+            cpad(styled" {$color,bold:*} ", width)
         elseif contentsize < size
             csize, cunits = humansize(contentsize)
             psize, punits = humansize(size - contentsize)
@@ -115,15 +114,18 @@ function memorylayout(io::IO, type::DataType)
         contentwidth = round(Int, width * contentsize / size)
         bar = styled"{$color:$('■'^contentwidth)}"
         if contentsize < size
-            color = if ispointer; :cyan else :light_black end
             paddwidth = width - contentwidth
-            bar *= styled"{$color:$('■'^paddwidth)}"
+            if ispointer
+                bar *= styled"{about_pointer,light:$('■'^paddwidth)}"
+            else
+                bar *= styled"{shadow:$('■'^paddwidth)}"
+            end
         end
         push!(bars, bar)
     end
     multirow_wrap(io, permutedims(hcat(bars, descs)))
-    if any(getfield.(si, :ispointer))
-        print(io, styled"\n {about_pointer:*} = {about_pointer:Pointer} {light:(8B)}")
+    if any(i -> i.ispointer, si)
+        print(io, styled"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
     end
     println(io)
 end
