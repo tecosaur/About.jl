@@ -78,23 +78,24 @@ function memorylayout(io::IO, value::T) where {T}
         push!(ftypes, string(type))
         push!(fsizes, join(humansize(size)))
         aio = AnnotatedIOBuffer()
-        if Base.issingletontype(type)
+        fvalue = getfield(value, name)
+        if Base.issingletontype(typeof(fvalue))
             push!(freprs, styled"{shadow:singleton}")
         elseif size == 0
             push!(freprs, styled"{error:??}")
         elseif ispointer
             try
-                pt = pointer(getfield(value, name))
-                push!(freprs, styled"{about_pointer,light:$pt}")
+                pt = pointer(fvalue)
+                push!(freprs, styled"{about_pointer:@ $(sprint(show, UInt64(pt)))}")
             catch
                 push!(freprs, styled"{about_pointer:Ptr?}")
             end
         else
-            memorylayout(IOContext(aio, :compact => true), getfield(value, name))
+            memorylayout(IOContext(aio, :compact => true), fvalue)
             push!(freprs, read(seekstart(aio), AnnotatedString))
         end
         truncate(aio, 0)
-        show(IOContext(aio, :compact => true), getfield(value, name))
+        show(IOContext(aio, :compact => true), fvalue)
         push!(fshows, read(seekstart(aio), AnnotatedString))
     end
     width = last(displaysize(io)) - 2
