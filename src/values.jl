@@ -17,7 +17,12 @@ function about(io::IO, value::T) where {T}
     supertypeinfo(io, supertype(T))
     println(io, ")")
     memorylayout(io, value)
+    if get(io, :compact, false) != true
+        elaboration(io, value)
+    end
 end
+
+elaboration(::IO, ::Any) = nothing
 
 function memorylayout(io::IO, value::T) where {T}
     if isprimitivetype(T)
