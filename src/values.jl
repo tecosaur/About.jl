@@ -203,14 +203,83 @@ end
 function memorylayout(io::IO, char::Char)
     chunks = reinterpret(NTuple{4, UInt8}, reinterpret(UInt32, char) |> hton)
     get(io, :compact, false) || print(io, "\n ")
-    for chunk in chunks
-        cstr = AnnotatedString(bitstring(chunk))
-        if iszero(chunk)
-            face!(cstr, :shadow)
-        else
-            for (; match) in eachmatch(r"1+", cstr)
-                face!(match, :bright_green)
+    nchunks = something(findlast(!iszero, chunks), 1)
+    byte0leading = [1, 3, 4, 5][nchunks]
+    ucodepoint = if Base.isoverlong(char)
+        Base.decode_overlong(char)
+    else
+        codepoint(char)
+    end
+    bit_spreads =
+        [[3, 4],
+         [3, 4, 4],
+         [4, 4, 4, 4],
+         [1, 4, 4, 4, 4, 4]
+         ][nchunks]
+    ubytes = collect(uppercase(string(
+        ucodepoint, base=16, pad = length(bit_spreads))))
+    overlong_bytes = if Base.isoverlong(char)
+        1:min(something(findfirst(==('1'), ubytes), length(ubytes)) - 1,
+              length(ubytes) - 2)
+    else 1:0 end
+    chunk_coloring = [Pair{UnitRange{Int}, Symbol}[] for _ in 1:length(chunks)]
+    ustr = styled"{bold:U+$(lpad(join(ubytes), 4, '0'))}"
+    for (i, b, color) in zip(1:length(ubytes),
+                             collect(eachindex(ustr))[end-length(ubytes)+1:end],
+                             Iterators.cycle(Iterators.reverse(FACE_CYCLE)))
+        if i in overlong_bytes
+            color = :error # overlong
+        end
+        face!(ustr[b:b], color)
+    end
+    if get(io, :compact, false) == true
+        print(io, ustr, ' ')
+    else let
+        current_bit = byte0leading
+        print(io, ' '^byte0leading)
+        for (i, ubyte, nbits, color) in zip(1:length(ubytes), ubytes, bit_spreads,
+                                            Iterators.cycle(Iterators.reverse(FACE_CYCLE)))
+            if i in overlong_bytes
+                color = :error # overlong
             end
+            does_byte_jump = current_bit ÷ 8 < (current_bit + nbits) ÷ 8
+            clean_jump = does_byte_jump && (current_bit + nbits) % 8 == 0
+            next_bit = current_bit + nbits + does_byte_jump * 2
+            width = nbits + 3 * (does_byte_jump && !clean_jump)
+            byte_brace = if width <= 2
+                lpad(ubyte, width)
+            else
+                '┌' * cpad(ubyte, width-2, '─') * '┐'
+            end
+            print(io, styled"{$color:$byte_brace}")
+            clean_jump && print(io, "   ")
+            if does_byte_jump && !clean_jump
+                push!(chunk_coloring[1 + current_bit ÷ 8], (1 + current_bit % 8):8 => color)
+                push!(chunk_coloring[1 + next_bit ÷ 8],    3:mod1(next_bit, 8) => color)
+            else
+                push!(chunk_coloring[1 + current_bit ÷ 8],
+                      (1 + current_bit % 8):mod1(current_bit + nbits, 8) => color)
+            end
+            current_bit = next_bit
+        end
+        print(io, "\n ")
+    end end
+    for (i, (chunk, coloring)) in enumerate(zip(chunks, chunk_coloring))
+        cbits = bitstring(chunk)
+        cstr = if i > nchunks
+            styled"{shadow:$cbits}"
+        else
+            leadingbits = if i == 1; byte0leading else 2 end
+            leading = cbits[1:leadingbits]
+            rest = AnnotatedString(cbits[leadingbits+1:end])
+            for (; match) in eachmatch(r"1+", rest)
+                face!(match, :underline)
+            end
+            cstr = styled"{shadow:$leading}$rest"
+            for (range, color) in coloring
+                face!(cstr, range, color)
+            end
+            cstr
         end
         print(io, cstr, ' ')
     end
@@ -220,6 +289,8 @@ function memorylayout(io::IO, char::Char)
             byte = lpad(string(chunk, base=16), 2, '0')
             print(io, styled" {shadow:└─0x$(byte)─┘}")
         end
+        print(io, "\n = ", ustr)
+        Base.isoverlong(char) && print(io, styled" {error:[overlong]}")
         println(io)
     end
 end
