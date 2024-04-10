@@ -5,17 +5,43 @@ const NUMBER_BIT_FACES = (
 )
 
 function about(io::IO, value::T) where {T}
-    print(io, Base.summary(value))
-    ismutable(value) && print(io, " (mutable)")
-    directbytes = sizeof(value)
-    indirectbytes = Base.summarysize(value)
-    print(io, styled", {bold:$(join(humansize(directbytes)))}")
-    if indirectbytes > directbytes
-        print(io, styled" referencing {bold:$(join(humansize(indirectbytes)))}")
+    # Type information
+    iotype = AnnotatedIOBuffer()
+    print(iotype, Base.summary(value))
+    ismutable(value) && print(iotype, " (mutable)")
+    print(iotype, styled" ({julia_comparator:<:} ")
+    supertypeinfo(iotype, supertype(T))
+    print(iotype, ")")
+    infotype = read(seekstart(iotype), AnnotatedString)
+    # Size information
+    typesize = try sizeof(T) catch _ sizeof(value) end
+    datasize = sizeof(value)
+    netsize = Base.summarysize(value)
+    infosize = if typesize == datasize == netsize
+        styled"{about_bytes:$(join(humansize(typesize)))}."
+    elseif typesize == datasize <= netsize
+        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+          (referencing {about_bytes:$(join(humansize(netsize)))} in total)"
+    elseif typesize == datasize > netsize
+        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+          ({warning:!} referencing {about_bytes:$(join(humansize(netsize)))} in total, \
+          {warning:strangely less than the direct, \
+          {underline,link={https://github.com/tecosaur/About.jl}:\
+          please open an issue on About.jl with this example}})"
+    else # all different
+        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+          (referencing {about_bytes:$(join(humansize(netsize)))} in total, \
+          holding {about_bytes:$(join(humansize(datasize)))} of data)"
     end
-    print(io, styled" ({julia_comparator:<:} ")
-    supertypeinfo(io, supertype(T))
-    println(io, ")")
+    print(io, infotype)
+    if textwidth(infotype) < last(displaysize(io)) &&
+        textwidth(infotype) + textwidth(infosize) + 12 >= last(displaysize(io))
+        print(io, "\n Memory footprint: ")
+    else
+        print(io, ", occupies ")
+    end
+    println(io, infosize)
+    # Layout + elaboration
     memorylayout(io, value)
     if get(io, :compact, false) != true
         elaboration(io, value)
