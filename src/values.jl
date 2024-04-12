@@ -111,7 +111,6 @@ function memorylayout(io::IO, value::T) where {T}
                 ' ', rpad(struncate(brepr, reprwidth, styled" {shadow:…} "), reprwidth),
                 ' ', face!(struncate(shown, showwidth, styled" {shadow:…} "), face))
     end
-    println(io)
     memorylayout(io, T)
 end
 

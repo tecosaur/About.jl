@@ -76,7 +76,6 @@ function about(io::IO, type::Type)
         columnlist(io, fieldinfo, spacing=3)
     end
     if type isa DataType
-        println(io)
         memorylayout(io, type)
     end
 end
@@ -123,9 +122,9 @@ function memorylayout(io::IO, type::DataType)
         end
         push!(bars, bar)
     end
+    println(io)
     multirow_wrap(io, permutedims(hcat(bars, descs)))
     if any(i -> i.ispointer, si)
-        print(io, styled"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
+        println(io, styled"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
     end
-    println(io)
 end
