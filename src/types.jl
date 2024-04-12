@@ -87,6 +87,7 @@ function supertypeinfo(io::IO, type::Type)
 end
 
 function memorylayout(io::IO, type::DataType)
+    hassizeof(type) || return
     si = structinfo(type)
     !isempty(si) || return
     memstep = memstep = gcd((getfield.(si, :size), getfield.(si, :contentsize)) |>
@@ -95,7 +96,7 @@ function memorylayout(io::IO, type::DataType)
     bars = AnnotatedString[]
     descs = AnnotatedString[]
     for (; i, size, contentsize, ispointer) in si
-        size == 0 && continue
+        size <= 0 && continue
         color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
         width = max(2, memscale * size÷memstep)
         fsize, funits = humansize(size)

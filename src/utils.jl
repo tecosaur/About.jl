@@ -12,6 +12,7 @@ end
 
 function hassizeof(type::Type)
     !isconcretetype(type) && return false
+    type <: GenericMemory && return false
     type in (Symbol, String, Core.SimpleVector) && return false
     true
 end
