@@ -152,7 +152,7 @@ function memorylayout(io::IO, value::Union{Int8, Int16, Int32, Int64, Int128})
     else
         signstr = ifelse(value < 0, '-', '+')
         println(io, "\n ", bits, ifelse(sizeof(value) > 4, "\n", ""),
-                styled" {bold:=} {$(NUMBER_BIT_FACES.sign):$signstr}$value")
+                styled" {bold:=} {$(NUMBER_BIT_FACES.sign):$signstr}$(abs(value))")
     end
 end
 
