@@ -62,22 +62,35 @@ end
 function print_effects(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
     effects = Base.infer_effects(fn, sig)
     ATRUE, AFALSE = Core.Compiler.ALWAYS_TRUE, Core.Compiler.ALWAYS_FALSE
-    echar(t::UInt8) = get(Dict(ATRUE => '✔', AFALSE => '✗'), t, '?')
+    CNORETURN, CINACCESSIBLEMEM, EFINACCESSIBLEMEM, INACESSIBLEMEMARG, NOUBINBOUNDS =
+        Core.Compiler.CONSISTENT_IF_NOTRETURNED, Core.Compiler.CONSISTENT_IF_INACCESSIBLEMEMONLY,
+        Core.Compiler.EFFECT_FREE_IF_INACCESSIBLEMEMONLY, Core.Compiler.INACCESSIBLEMEM_OR_ARGMEMONLY,
+        Core.Compiler.INACCESSIBLEMEM_OR_ARGMEMONLY, Core.Compiler.NOUB_IF_NOINBOUNDS
+    echar(t::UInt8) = get(Dict(ATRUE => '✔', AFALSE => '✗'), t, '~')
     echar(b::Bool) = ifelse(b, '✔', '✗')
     eface(t::UInt8) = get(Dict(ATRUE => :success, AFALSE => :error), t, :warning)
     eface(b::Bool) = ifelse(b, :success, :error)
     hedge(t::UInt8) = get(Dict(ATRUE => styled"guaranteed to",
-                               AFALSE => styled"{italic:not} guaranteed to"), t,
-                          styled"???")
+                               AFALSE => styled"{italic:not} guaranteed to",
+                               CNORETURN => styled"guaranteed ({italic:when no mutable objects are returned}) to",
+                               CINACCESSIBLEMEM => styled"guaranteed ({italic:when {code:inaccessiblememonly} holds}) to",
+                               EFINACCESSIBLEMEM => styled"guaranteed ({italic:when {code:inaccessiblememonly} holds}) to",
+                               INACESSIBLEMEMARG => styled"guaranteed to ({italic:excluding mutable memory from arguments})",
+                               NOUBINBOUNDS => styled"guaranteed ({italic:so long as {code,julia_macro:@inbounds} is not used or propagated}) to"),
+                          t, styled"???")
     hedge(b::Bool) = hedge(ifelse(b, ATRUE, AFALSE))
     println(io)
     for (effect, description) in
         [(:consistent, "return or terminate consistently"),
          (:effect_free, "be free from externally semantically visible side effects"),
          (:nothrow, "never throw an exception"),
-         (:terminates, "terminate")]
+         (:terminates, "terminate"),
+         (:notaskstate, "have no task state"),
+         (:inaccessiblememonly, "access or modify externally accessible mutable memory"),
+         (:noub, "never execute any undefined behaviour"),
+         (:nonoverlayed, "never execute a method from an overlayed method table")]
         e = getfield(effects, effect)
-        print(io, styled" {$(eface(e)):{bold:$(echar(e))} $(rpad(effect, 11))}  {shadow:$(hedge(e)) $description}")
+        print(io, styled" {$(eface(e)):{bold:$(echar(e))} $(rpad(effect, 12))}  {shadow:$(hedge(e)) $description}")
         print('\n')
     end
 end
