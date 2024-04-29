@@ -56,11 +56,11 @@ function about(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
     for method in ms
         println(io, "  ", sprint(show, method, context=IOContext(io)))
     end
-    print_effects(io, fn, sig)
+    println(io)
+    about(io, Base.infer_effects(fn, sig))
 end
 
-function print_effects(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
-    effects = Base.infer_effects(fn, sig)
+function about(io::IO, effects::Core.Compiler.Effects)
     ATRUE, AFALSE = Core.Compiler.ALWAYS_TRUE, Core.Compiler.ALWAYS_FALSE
     CNORETURN, CINACCESSIBLEMEM, EFINACCESSIBLEMEM, INACESSIBLEMEMARG, NOUBINBOUNDS =
         Core.Compiler.CONSISTENT_IF_NOTRETURNED, Core.Compiler.CONSISTENT_IF_INACCESSIBLEMEMONLY,
@@ -79,7 +79,7 @@ function print_effects(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
                                NOUBINBOUNDS => styled"guaranteed ({italic:so long as {code,julia_macro:@inbounds} is not used or propagated}) to"),
                           t, styled"???")
     hedge(b::Bool) = hedge(ifelse(b, ATRUE, AFALSE))
-    println(io)
+    println(io, styled"{bold:Method effects:}")
     for (effect, description) in
         [(:consistent, "return or terminate consistently"),
          (:effect_free, "be free from externally semantically visible side effects"),
