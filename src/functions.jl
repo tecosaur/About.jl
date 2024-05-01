@@ -57,41 +57,92 @@ function about(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
         println(io, "  ", sprint(show, method, context=IOContext(io)))
     end
     println(io)
-    about(io, Base.infer_effects(fn, sig))
+    @static if VERSION >= v"1.8"
+        about(io, Base.infer_effects(fn, sig))
+    end
 end
 
-function about(io::IO, effects::Core.Compiler.Effects)
-    ATRUE, AFALSE = Core.Compiler.ALWAYS_TRUE, Core.Compiler.ALWAYS_FALSE
-    CNORETURN, CINACCESSIBLEMEM, EFINACCESSIBLEMEM, INACESSIBLEMEMARG, NOUBINBOUNDS =
-        Core.Compiler.CONSISTENT_IF_NOTRETURNED, Core.Compiler.CONSISTENT_IF_INACCESSIBLEMEMONLY,
-        Core.Compiler.EFFECT_FREE_IF_INACCESSIBLEMEMONLY, Core.Compiler.INACCESSIBLEMEM_OR_ARGMEMONLY,
-        Core.Compiler.INACCESSIBLEMEM_OR_ARGMEMONLY, Core.Compiler.NOUB_IF_NOINBOUNDS
-    echar(t::UInt8) = get(Dict(ATRUE => '✔', AFALSE => '✗'), t, '~')
-    echar(b::Bool) = ifelse(b, '✔', '✗')
-    eface(t::UInt8) = get(Dict(ATRUE => :success, AFALSE => :error), t, :warning)
-    eface(b::Bool) = ifelse(b, :success, :error)
-    hedge(t::UInt8) = get(Dict(ATRUE => styled"guaranteed to",
-                               AFALSE => styled"{italic:not} guaranteed to",
-                               CNORETURN => styled"guaranteed ({italic:when no mutable objects are returned}) to",
-                               CINACCESSIBLEMEM => styled"guaranteed ({italic:when {code:inaccessiblememonly} holds}) to",
-                               EFINACCESSIBLEMEM => styled"guaranteed ({italic:when {code:inaccessiblememonly} holds}) to",
-                               INACESSIBLEMEMARG => styled"guaranteed to ({italic:excluding mutable memory from arguments})",
-                               NOUBINBOUNDS => styled"guaranteed ({italic:so long as {code,julia_macro:@inbounds} is not used or propagated}) to"),
-                          t, styled"???")
-    hedge(b::Bool) = hedge(ifelse(b, ATRUE, AFALSE))
-    println(io, styled"{bold:Method effects:}")
-    for (effect, description) in
-        [(:consistent, "return or terminate consistently"),
-         (:effect_free, "be free from externally semantically visible side effects"),
-         (:nothrow, "never throw an exception"),
-         (:terminates, "terminate"),
-         (:notaskstate, "have no task state"),
-         (:inaccessiblememonly, "access or modify externally accessible mutable memory"),
-         (:noub, "never execute any undefined behaviour"),
-         (:nonoverlayed, "never execute a method from an overlayed method table")]
-        e = getfield(effects, effect)
-        print(io, styled" {$(eface(e)):{bold:$(echar(e))} $(rpad(effect, 12))}  {shadow:$(hedge(e)) $description}")
-        print('\n')
+@static if VERSION >= v"1.8"
+    struct CompatibleCoreCompilerConstants end
+
+    function Base.getproperty(::CompatibleCoreCompilerConstants, name::Symbol)
+        if isdefined(Core.Compiler, name)
+            getglobal(Core.Compiler, name)
+        end
+    end
+
+    const C4 = CompatibleCoreCompilerConstants()
+
+    function about(io::IO, effects::Core.Compiler.Effects)
+        function effectinfo(io::IO, field::Symbol, name::String, labels::Pair{<:Union{UInt8, Bool, Nothing}, AnnotatedString{String}}...;
+                            prefix::AbstractString = "", suffix::AbstractString = "")
+            hasproperty(effects, field) || return
+            value = @static if VERSION >= v"1.9"
+                getproperty(effects, field)
+            else # v1.8
+                getproperty(effects, field).state
+            end
+            icon, accent = if value == C4.ALWAYS_TRUE || value === true
+                '✔', :success
+            elseif value == C4.ALWAYS_FALSE || value === false
+                '✗', :error
+            else
+                '~', :warning
+            end
+            msg = styled"{bold,italic,grey:???}"
+            for (id, label) in labels
+                if id == value
+                    msg = label
+                    break
+                end
+            end
+            name_pad_width = 13
+            dispwidth = last(displaysize(io))
+            declr = styled" {bold,$accent:$icon $(rpad(name, name_pad_width))}  "
+            print(io, declr)
+            indent = name_pad_width + 5
+            desc = styled"{grey:$prefix$(ifelse(isempty(prefix), \"\", \" \"))$msg$(ifelse(isempty(suffix), \"\", \" \"))$suffix}"
+            desclines = wraplines(desc, dispwidth - indent, indent)
+            for (i, line) in enumerate(desclines)
+                i > 1 && print(io, ' '^indent)
+                println(io, line)
+            end
+        end
+        println(io, styled"{bold:Method effects:}")
+        effectinfo(io, :consistent, "consistent",
+                   C4.ALWAYS_TRUE => styled"guaranteed to",
+                   C4.ALWAYS_FALSE => styled"might {italic:not}",
+                   C4.CONSISTENT_IF_NOTRETURNED => styled"when the return value never involved newly allocated mutable objects, will",
+                   C4.CONSISTENT_IF_INACCESSIBLEMEMONLY => styled"when {code:inaccessible memory only} is also proven, will",
+                   suffix = "return or terminate consistently")
+        effectinfo(io, :effect_free, "effect free",
+                   C4.ALWAYS_TRUE => styled"guaranteed to be",
+                   C4.ALWAYS_FALSE => styled"might {italic:not} be",
+                   C4.EFFECT_FREE_IF_INACCESSIBLEMEMONLY => styled"when {code:inaccessible memory only} is also proven, is",
+                   suffix = "free from externally semantically visible side effects")
+        effectinfo(io, :nothrow, "no throw",
+                   C4.ALWAYS_TRUE => styled"guaranteed to never",
+                   C4.ALWAYS_FALSE => styled"may",
+                   suffix = "throw an exception")
+        effectinfo(io, :terminates, "terminates",
+                   C4.ALWAYS_TRUE => styled"guaranteed to",
+                   C4.ALWAYS_FALSE => styled"might {italic:not}",
+                   suffix = "always terminate")
+        effectinfo(io, :notaskstate, "no task state",
+                   C4.ALWAYS_TRUE => styled"guaranteed not to access task state (allowing migration between tasks)",
+                   C4.ALWAYS_FALSE => styled"may access task state (preventing migration between tasks)")
+        effectinfo(io, :inaccessiblememonly, "inaccessible memory only",
+                   C4.ALWAYS_TRUE => styled"guaranteed to never access or modify externally accessible mutable memory",
+                   C4.ALWAYS_FALSE => styled"may access or modify externally accessible mutable memory",
+                   C4.INACCESSIBLEMEM_OR_ARGMEMONLY => styled"may access or modify mutable memory {italic:iff} pointed to by its call arguments")
+        effectinfo(io, :noub, "no undefined behaviour",
+                   C4.ALWAYS_TRUE => styled"guaranteed to never",
+                   C4.ALWAYS_FALSE => styled"may",
+                   C4.NOUB_IF_NOINBOUNDS => styled"so long as {code,julia_macro:@inbounds} is not used or propagated, will not",
+                   suffix = "execute undefined behaviour")
+        effectinfo(io, :nonoverlayed, "non-overlayed",
+                   true => styled"never calls any methods from an overlayed method table",
+                   false => styled"{warning:may} call methods from an overlayed method table")
     end
 end
 
