@@ -44,21 +44,43 @@ function about(io::IO, method::Method)
     print_effects(io, fn, sig)
 end
 
-function about(io::IO, fn::Function, @nospecialize(sig::Type{<:Tuple}))
+function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
     about(io, fn); println(io)
-    ms = methods(fn, sig)
+    ms = methods(fn, argtypes)
     if isempty(ms)
-        fncall = highlight("$fn($(join(collect(sig.types), ", ")))")
+        fncall = highlight("$fn($(join(collect(argtypes.types), ", ")))")
         println(io, styled" {error:!} No methods matched $fncall")
         return
     end
-    println(io, styled" Matched {emphasis:$(length(ms))} method$(ifelse(length(ms) > 1, \"s\", \"\")):")
+    rinfo = let rtypes = Base.return_types(fn, argtypes) # HACK: this is technically private API
+        unique!(rtypes)
+        for i in eachindex(rtypes), j in eachindex(rtypes)
+            Tᵢ, Tⱼ = rtypes[i], rtypes[j]
+            if Tᵢ <: Tⱼ
+                rtypes[i] = Tⱼ
+            elseif Tⱼ <: Tᵢ
+                rtypes[j] = Tᵢ
+            end
+        end
+        unique!(rtypes)
+        sort!(rtypes, by=length ∘ supertypes)
+        join(map(t -> styled"{julia_type:$t}", rtypes), ", ")
+    end
+    println(io, styled" Matched {emphasis:$(length(ms))} method$(ifelse(length(ms) > 1, \"s\", \"\")) {julia_type:::} $rinfo")
     for method in ms
-        println(io, "  ", sprint(show, method, context=IOContext(io)))
+        mcall, msrc = split(sprint(show, method), " @ ")
+        msrcinfo = match(r"^([A-Z][A-Za-z0-9\.]+) (.+)$", msrc)
+        msrcpretty = if isnothing(msrcinfo)
+            styled"{shadow,underline:$msrc}"
+        else
+            mmod, mfile = msrcinfo.captures
+            styled"{about_module:$mmod} {shadow,underline:$mfile}"
+        end
+        println(io, styled"  {light:$(highlight(mcall))} {shadow,bold:@} $msrcpretty")
     end
     println(io)
     @static if VERSION >= v"1.8"
-        about(io, Base.infer_effects(fn, sig))
+        about(io, Base.infer_effects(fn, argtypes))
     end
 end
 
