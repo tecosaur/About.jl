@@ -5,6 +5,8 @@ using StyledStrings: @styled_str, Face, face!, addface!
 using JuliaSyntaxHighlighting: highlight
 using InteractiveUtils
 
+const var"@S_str" = var"@styled_str"
+
 export about
 
 include("utils.jl")

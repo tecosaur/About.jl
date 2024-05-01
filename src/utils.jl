@@ -40,7 +40,7 @@ end
 
 function columnlist(io::IO, entries::Vector{<:AbstractString};
                     maxcols::Int=8, maxwidth::Int=last(displaysize(io)),
-                    prefix::AbstractString = styled"{emphasis:•} ", spacing::Int=2)
+                    prefix::AbstractString = S"{emphasis:•} ", spacing::Int=2)
     thecolumns = Vector{eltype(entries)}[]
     thecolwidths = Int[]
     for ncols in 1:maxcols

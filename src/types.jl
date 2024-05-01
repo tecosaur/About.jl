@@ -43,7 +43,7 @@ function about(io::IO, type::Type)
     elseif isconcretetype(type)
         print(io, "Concrete ")
         if Base.datatype_haspadding(type)
-            print(io, styled"{shadow:(padded)} ")
+            print(io, S"{shadow:(padded)} ")
         end
     elseif isabstracttype(type)
         print(io, "Abstract ")
@@ -52,22 +52,22 @@ function about(io::IO, type::Type)
         print(io, "singleton ")
     end
     print(Base.summary(type))
-    print(io, styled" defined in {about_module:$(parentmodule(type))}, ")
+    print(io, S" defined in {about_module:$(parentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
     supertypeinfo(io, type)
     (!isstructtype(type) || fieldcount(type) == 0) && return
-    println(io, styled"\n\nStruct with {bold:$(fieldcount(type))} fields:")
+    println(io, S"\n\nStruct with {bold:$(fieldcount(type))} fields:")
     fieldinfo = AnnotatedString[]
     if type isa DataType
         sinfo = structinfo(type)
         namepad = maximum(fi -> textwidth(string(fi.name)), sinfo) + 1
         for (; face, name, type, ispointer) in sinfo
-            push!(fieldinfo, rpad(styled"{$face:$name}", namepad) * styled"{about_pointer:$(ifelse(ispointer, \"*\", \" \"))}$type")
+            push!(fieldinfo, rpad(S"{$face:$name}", namepad) * S"{about_pointer:$(ifelse(ispointer, \"*\", \" \"))}$type")
         end
     else
         for (; name, type) in structinfo(type)
-            push!(fieldinfo, styled"$name{shadow:::$type}")
+            push!(fieldinfo, S"$name{shadow:::$type}")
         end
     end
     if length(fieldinfo) < 32
@@ -83,7 +83,7 @@ end
 function supertypeinfo(io::IO, type::Type)
     typestr(t) = highlight(sprint(show, Base.unwrap_unionall(t)))
     join(io, map(typestr, supertypes(type)),
-         styled" {julia_comparator:<:} ")
+         S" {julia_comparator:<:} ")
 end
 
 function memorylayout(io::IO, type::DataType)
@@ -101,24 +101,24 @@ function memorylayout(io::IO, type::DataType)
         width = max(2, memscale * size÷memstep)
         fsize, funits = humansize(size)
         desc = if ispointer
-            cpad(styled" {$color,bold:*} ", width)
+            cpad(S" {$color,bold:*} ", width)
         elseif contentsize < size
             csize, cunits = humansize(contentsize)
             psize, punits = humansize(size - contentsize)
-            cpad(styled" {$color:$csize$cunits}{shadow:+$psize$punits} ", width, ' ', RoundUp)
+            cpad(S" {$color:$csize$cunits}{shadow:+$psize$punits} ", width, ' ', RoundUp)
         else
-            cpad(styled" {$color:$fsize$funits} ", width)
+            cpad(S" {$color:$fsize$funits} ", width)
         end
         push!(descs, desc)
         width = textwidth(desc)
         contentwidth = round(Int, width * contentsize / size)
-        bar = styled"{$color:$('■'^contentwidth)}"
+        bar = S"{$color:$('■'^contentwidth)}"
         if contentsize < size
             paddwidth = width - contentwidth
             if ispointer
-                bar *= styled"{about_pointer,light:$('■'^paddwidth)}"
+                bar *= S"{about_pointer,light:$('■'^paddwidth)}"
             else
-                bar *= styled"{shadow:$('■'^paddwidth)}"
+                bar *= S"{shadow:$('■'^paddwidth)}"
             end
         end
         push!(bars, bar)
@@ -126,6 +126,6 @@ function memorylayout(io::IO, type::DataType)
     println(io)
     multirow_wrap(io, permutedims(hcat(bars, descs)))
     if any(i -> i.ispointer, si)
-        println(io, styled"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
+        println(io, S"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
     end
 end

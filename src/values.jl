@@ -9,7 +9,7 @@ function about(io::IO, value::T) where {T}
     iotype = AnnotatedIOBuffer()
     print(iotype, Base.summary(value))
     ismutable(value) && print(iotype, " (mutable)")
-    print(iotype, styled" ({julia_comparator:<:} ")
+    print(iotype, S" ({julia_comparator:<:} ")
     supertypeinfo(iotype, supertype(T))
     print(iotype, ")")
     infotype = read(seekstart(iotype), AnnotatedString)
@@ -18,18 +18,18 @@ function about(io::IO, value::T) where {T}
     datasize = sizeof(value)
     netsize = Base.summarysize(value)
     infosize = if typesize == datasize == netsize
-        styled"{about_bytes:$(join(humansize(typesize)))}."
+        S"{about_bytes:$(join(humansize(typesize)))}."
     elseif typesize == datasize <= netsize
-        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+        S"{about_bytes:$(join(humansize(typesize)))} directly \
           (referencing {about_bytes:$(join(humansize(netsize)))} in total)"
     elseif typesize == datasize > netsize
-        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+        S"{about_bytes:$(join(humansize(typesize)))} directly \
           ({warning:!} referencing {about_bytes:$(join(humansize(netsize)))} in total, \
           {warning:strangely less than the direct, \
           {underline,link={https://github.com/tecosaur/About.jl}:\
           please open an issue on About.jl with this example}})"
     else # all different
-        styled"{about_bytes:$(join(humansize(typesize)))} directly \
+        S"{about_bytes:$(join(humansize(typesize)))} directly \
           (referencing {about_bytes:$(join(humansize(netsize)))} in total, \
           holding {about_bytes:$(join(humansize(datasize)))} of data)"
     end
@@ -61,7 +61,7 @@ function memorylayout(io::IO, value::T) where {T}
         return
     end
     if Base.issingletontype(T)
-        println(io, styled"{italic:singelton}")
+        println(io, S"{italic:singelton}")
         return
     end
     sinfo = structinfo(T)
@@ -80,15 +80,15 @@ function memorylayout(io::IO, value::T) where {T}
         aio = AnnotatedIOBuffer()
         fvalue = getfield(value, name)
         if Base.issingletontype(typeof(fvalue))
-            push!(freprs, styled"{shadow:singleton}")
+            push!(freprs, S"{shadow:singleton}")
         elseif size == 0
-            push!(freprs, styled"{error:??}")
+            push!(freprs, S"{error:??}")
         elseif ispointer
             try
                 pt = pointer(fvalue)
-                push!(freprs, styled"{about_pointer:@ $(sprint(show, UInt64(pt)))}")
+                push!(freprs, S"{about_pointer:@ $(sprint(show, UInt64(pt)))}")
             catch
-                push!(freprs, styled"{about_pointer:Ptr?}")
+                push!(freprs, S"{about_pointer:Ptr?}")
             end
         else
             memorylayout(IOContext(aio, :compact => true), fvalue)
@@ -107,9 +107,9 @@ function memorylayout(io::IO, value::T) where {T}
     showwidth = width - reprwidth
     for (face, name, type, size, brepr, shown) in zip(ffaces, fnames, ftypes, fsizes, freprs, fshows)
         println(io, ' ',
-                styled"{$face:$(lpad(name, namewidth)){shadow:::}$(rpad(struncate(type, typewidth, \"…\", :right), typewidth)) $(lpad(size, sizewidth))}",
-                ' ', rpad(struncate(brepr, reprwidth, styled" {shadow:…} "), reprwidth),
-                ' ', face!(struncate(shown, showwidth, styled" {shadow:…} "), face))
+                S"{$face:$(lpad(name, namewidth)){shadow:::}$(rpad(struncate(type, typewidth, \"…\", :right), typewidth)) $(lpad(size, sizewidth))}",
+                ' ', rpad(struncate(brepr, reprwidth, S" {shadow:…} "), reprwidth),
+                ' ', face!(struncate(shown, showwidth, S" {shadow:…} "), face))
     end
     memorylayout(io, T)
 end
@@ -121,7 +121,7 @@ function memorylayout(io::IO, value::Bool)
     if get(io, :compact, false) == true
         print(io, bits)
     else
-        println(io, "\n ", bits, styled" {bold:=} $value")
+        println(io, "\n ", bits, S" {bold:=} $value")
     end
 end
 
@@ -134,7 +134,7 @@ function memorylayout(io::IO, value::Union{UInt8, UInt16, UInt32, UInt64, UInt12
         print(io, bits)
     else
         println(io, "\n ", bits, ifelse(sizeof(value) > 4, "\n", ""),
-                styled" {bold:=} $value")
+                S" {bold:=} $value")
     end
 end
 
@@ -152,7 +152,7 @@ function memorylayout(io::IO, value::Union{Int8, Int16, Int32, Int64, Int128})
     else
         signstr = ifelse(value < 0, '-', '+')
         println(io, "\n ", bits, ifelse(sizeof(value) > 4, "\n", ""),
-                styled" {bold:=} {$(NUMBER_BIT_FACES.sign):$signstr}$(abs(value))")
+                S" {bold:=} {$(NUMBER_BIT_FACES.sign):$signstr}$(abs(value))")
     end
 end
 
@@ -164,7 +164,7 @@ memorylayout(io::IO, float::Core.BFloat16) = floatlayout(io, float, 8)
 function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
     fsign, fexp, fmant = NUMBER_BIT_FACES.sign, NUMBER_BIT_FACES.exponent, NUMBER_BIT_FACES.mantissa
     bitstr = bitstring(float)
-    hl_bits = styled"{$fsign:$(bitstr[1])}{$fexp:$(bitstr[2:expbits+1])}{$fmant:$(bitstr[expbits+2:end])}"
+    hl_bits = S"{$fsign:$(bitstr[1])}{$fexp:$(bitstr[2:expbits+1])}{$fmant:$(bitstr[expbits+2:end])}"
     if get(io, :compact, false) == true
         print(io, hl_bits)
     else
@@ -188,12 +188,12 @@ function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
                       eright = (expbits - 3) - eleft
                       fleft = (fracbits - 3) ÷ 2
                       fright = (fracbits - 3) - fleft
-            styled"{$fsign:╨}{$fexp:└$('─'^eleft)┬$('─'^eright)┘}{$fmant:└$('─'^fleft)┬$('─'^fright)┘}"
+            S"{$fsign:╨}{$fexp:└$('─'^eleft)┬$('─'^eright)┘}{$fmant:└$('─'^fleft)┬$('─'^fright)┘}"
         end
-        hl_vals = styled"{$fsign,bold:$sign}{$fexp:$expstr}{bold:×}{$fmant:$fracstr}"
-        hl_more = styled"  {$fexp:exponent}$(' '^17){$fmant:mantissa / fraction}"
+        hl_vals = S"{$fsign,bold:$sign}{$fexp:$expstr}{bold:×}{$fmant:$fracstr}"
+        hl_more = S"  {$fexp:exponent}$(' '^17){$fmant:mantissa / fraction}"
         println(io, "\n ", hl_bits, " \n ", hl_info, "\n ", hl_vals,
-                styled"\n {bold:=} ", if -8 < exponent < 8
+                S"\n {bold:=} ", if -8 < exponent < 8
                     Base.Ryu.writefixed(float, fracdp)
                 else Base.Ryu.writeexp(float, fracdp) end)
     end
@@ -222,7 +222,7 @@ function memorylayout(io::IO, char::Char)
               length(ubytes) - 2)
     else 1:0 end
     chunk_coloring = [Pair{UnitRange{Int}, Symbol}[] for _ in 1:length(chunks)]
-    ustr = styled"{bold:U+$(lpad(join(ubytes), 4, '0'))}"
+    ustr = S"{bold:U+$(lpad(join(ubytes), 4, '0'))}"
     for (i, b, color) in zip(1:length(ubytes),
                              collect(eachindex(ustr))[end-length(ubytes)+1:end],
                              Iterators.cycle(Iterators.reverse(FACE_CYCLE)))
@@ -250,7 +250,7 @@ function memorylayout(io::IO, char::Char)
             else
                 '┌' * cpad(ubyte, width-2, '─') * '┐'
             end
-            print(io, styled"{$color:$byte_brace}")
+            print(io, S"{$color:$byte_brace}")
             clean_jump && print(io, "   ")
             if does_byte_jump && !clean_jump
                 push!(chunk_coloring[1 + current_bit ÷ 8], (1 + current_bit % 8):8 => color)
@@ -266,7 +266,7 @@ function memorylayout(io::IO, char::Char)
     for (i, (chunk, coloring)) in enumerate(zip(chunks, chunk_coloring))
         cbits = bitstring(chunk)
         cstr = if i > nchunks
-            styled"{shadow:$cbits}"
+            S"{shadow:$cbits}"
         else
             leadingbits = if i == 1; byte0leading else 2 end
             leading = cbits[1:leadingbits]
@@ -274,7 +274,7 @@ function memorylayout(io::IO, char::Char)
             for (; match) in eachmatch(r"1+", rest)
                 face!(match, :underline)
             end
-            cstr = styled"{shadow:$leading}$rest"
+            cstr = S"{shadow:$leading}$rest"
             for (range, color) in coloring
                 face!(cstr, range, color)
             end
@@ -286,10 +286,10 @@ function memorylayout(io::IO, char::Char)
         println(io)
         for chunk in chunks
             byte = lpad(string(chunk, base=16), 2, '0')
-            print(io, styled" {shadow:└─0x$(byte)─┘}")
+            print(io, S" {shadow:└─0x$(byte)─┘}")
         end
         print(io, "\n = ", ustr)
-        Base.isoverlong(char) && print(io, styled" {error:[overlong]}")
+        Base.isoverlong(char) && print(io, S" {error:[overlong]}")
         println(io)
     end
 end
@@ -331,7 +331,7 @@ const CONTROL_CHARACTERS =
 
 function elaboration(io::IO, char::Char)
     c0index = findfirst(c -> first(c) == char, CONTROL_CHARACTERS)
-    stychr = styled"{julia_char:$(sprint(show, char))}"
+    stychr = S"{julia_char:$(sprint(show, char))}"
     if !isnothing(c0index)
         cshort, cname, cinfo = last(CONTROL_CHARACTERS[c0index])
         println(io, "\n Control character ", stychr, ": ", cname, " ($cshort)",
@@ -353,15 +353,15 @@ function elaboration(io::IO, char::Char)
         println(io, "\n ASCII $kind ", stychr)
     elseif char in ('Ç':'ø'..., 'Ø', 'á':'Ñ'..., 'Á':'À', 'ã', 'Ã', 'ð':'Ï'..., 'Ó':'Ý')
         println(io, "\n Extended ASCII accented letter ", stychr,
-                styled" ({julia_number:0x$(string(UInt8(char), base=16))})")
+                S" ({julia_number:0x$(string(UInt8(char), base=16))})")
     elseif Base.isoverlong(char)
     elseif codepoint(char) in 128:255
         println(io, "\n Extended ASCII symbol ", stychr,
-                styled" ({shadow:0x$(string(Int(char), base=16))})")
+                S" ({shadow:0x$(string(Int(char), base=16))})")
     else
         catstr = Base.Unicode.category_string(char)
         catabr = Base.Unicode.category_abbrev(char)
-        println(io, styled"\n Unicode $stychr, category: $catstr ($catabr)")
+        println(io, S"\n Unicode $stychr, category: $catstr ($catabr)")
     end
 end
 
