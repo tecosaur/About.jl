@@ -111,6 +111,82 @@ function memorylayout(io::IO, value::T) where {T}
 end
 
 # ------------------
+# Modules
+# ------------------
+
+function about(io::IO, mod::Module)
+    pkg = nothing
+    for (bpkg, m) in Base.loaded_modules
+        if m == mod
+            pkg = bpkg
+            break
+        end
+    end
+    !isnothing(pkg) && !applicable(about_pkg, io, pkg, mod) &&
+        Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
+    print(io, S"{bold:Module {about_module:$mod}}")
+    if !isnothing(pkg)
+        println(io, S" {shadow:[$(something(pkg.uuid, \"no uuid\"))]}")
+        Base.invokelatest(about_pkg, io, pkg, mod)
+    else
+        println(io)
+    end
+    function classify(m::Module, name::Symbol)
+        val = getglobal(mod, name)
+        order, kind, face, parent = if val isa Module
+            0, :module, :about_module, val
+        elseif val isa Function && first(String(name)) == '@'
+            1, :macro, :julia_macro, parentmodule(val)
+        elseif val isa Function
+            2, :function, :julia_funcall, parentmodule(val)
+        elseif val isa Type
+            3, :type, :julia_type, if val isa UnionAll || val isa Union
+                m else parentmodule(val) end
+        else
+            4, :value, :julia_identifier, if Base.issingletontype(typeof(val))
+                parentmodule(typeof(m))
+            else
+                m
+            end
+        end
+        while parentmodule(parent) ∉ (parent, Main)
+            parent = parentmodule(parent)
+        end
+        (; name, str = S"{code,$face:$name}", kind, parent, order)
+    end
+    classify(m::Module, names::Vector{Symbol}) =
+        sort(map(Base.Fix1(classify, m), names), by=x->x.order)
+    allnames = classify(mod, names(mod))
+    exports = similar(allnames, 0)
+    reexports = similar(allnames, 0)
+    publics = similar(allnames, 0)
+    for exp in allnames
+        if exp.parent === mod && Base.isexported(mod, exp.name)
+            push!(exports, exp)
+        elseif exp.parent === mod && Base.ispublic(mod, exp.name)
+            push!(publics, exp)
+        elseif exp.parent !== mod
+            push!(reexports, exp)
+        end
+    end
+    if !isempty(exports)
+        println(io, S"\n{bold:Exports {emphasis:$(length(exports))} name$(splural(exports)):}")
+        columnlist(io, map(x->x.str, exports))
+    end
+    if !isempty(reexports)
+        parents = join(sort(map(p->S"{about_module:$p}", unique(map(x->x.parent, reexports)))), ", ")
+        println(io, S"\n{bold:Re-exports {emphasis:$(length(reexports))} name$(splural(reexports))} (from $parents){bold::}")
+        columnlist(io, map(x->x.str, reexports))
+    end
+    if !isempty(publics)
+        println(io, S"\n{bold:Public API ({emphasis:$(length(publics))} name$(splural(publics))):}")
+        columnlist(io, map(x->x.str, publics))
+    end
+end
+
+function about_pkg end # Implemented in `../ext/PkgExt.jl`
+
+# ------------------
 # Numeric types
 # ------------------
 
@@ -372,9 +448,6 @@ function elaboration(io::IO, char::Char)
         catstr = Base.Unicode.category_string(char)
         catabr = Base.Unicode.category_abbrev(char)
         println(io, S"\n Unicode $stychr, category: $catstr ($catabr)")
-    end
-end
-
     end
 end
 

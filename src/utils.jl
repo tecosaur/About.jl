@@ -21,6 +21,9 @@ function cpad(s, n::Integer, pad::Union{AbstractString, AbstractChar}=' ', r::Ro
     rpad(lpad(s, div(n+textwidth(s), 2, r), pad), n, pad)
 end
 
+splural(n::Int) = ifelse(n == 1, "", "s")
+splural(c::Vector) = splural(length(c))
+
 function struncate(str::AbstractString, maxwidth::Int, joiner::AbstractString = "…", mode::Symbol = :center)
     textwidth(str) <= maxwidth && return str
     left, right = firstindex(str) - 1, lastindex(str) + 1
@@ -41,16 +44,18 @@ end
 function columnlist(io::IO, entries::Vector{<:AbstractString};
                     maxcols::Int=8, maxwidth::Int=last(displaysize(io)),
                     prefix::AbstractString = S"{emphasis:•} ", spacing::Int=2)
+    isempty(entries) && return
     thecolumns = Vector{eltype(entries)}[]
     thecolwidths = Int[]
     for ncols in 1:maxcols
         columns = Vector{eltype(entries)}[]
-        for col in Iterators.partition(entries, length(entries) ÷ ncols)
+        for col in Iterators.partition(entries, div(length(entries), ncols, RoundUp))
             push!(columns, collect(col))
         end
         widths = map.(textwidth, columns)
         colwidths = map(maximum, widths)
-        if sum(colwidths) + ncols * textwidth(prefix) + (1 - ncols) * spacing > maxwidth
+        layoutwidth = sum(colwidths) + ncols * textwidth(prefix) + (ncols - 1) * spacing
+        if layoutwidth > maxwidth
             break
         else
             thecolumns, thecolwidths = columns, colwidths
@@ -115,6 +120,8 @@ function wraplines(content::Union{Annot, SubString{<:Annot}}, width::Integer = 8
                     most_recent_break_opportunity = lastwrap + nextbreak
                 end
                 i = most_recent_break_opportunity
+            else
+                i = nextind(s, most_recent_break_opportunity)
             end
             push!(lines, content[nextind(s, lastwrap):prevind(s, most_recent_break_opportunity)])
             lastwrap = most_recent_break_opportunity

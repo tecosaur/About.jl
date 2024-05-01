@@ -8,7 +8,14 @@ InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 JuliaSyntaxHighlighting = "dc6e5ff7-fb65-4e79-a425-ec3bc9c03011"
 StyledStrings = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 
+[weakdeps]
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+
+[extensions]
+PkgExt = "Pkg"
+
 [compat]
 InteractiveUtils = "1.11.0"
 JuliaSyntaxHighlighting = "1.11.0"
+Pkg = "1.11.0"
 StyledStrings = "1.11.0"
