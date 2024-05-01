@@ -15,12 +15,13 @@ include("types.jl")
 include("values.jl")
 
 """
-    about(fn::Function, [signature::Tuple])
-    about(typ::Type)
-    about(obj::Any)
+    about([io::IO], fn::Function, [argtypes::Type...])
+    about([io::IO], typ::Type)
+    about([io::IO], val::Any)
 
-Display information on the particular nature of the argument, whether
-it be a function, type, or value.
+Display information on the particular nature of the argument, whatever it may be.
+
+TODO mention the mechanisms for extension here too.
 """
 function about end
 
@@ -32,6 +33,31 @@ function about(xs...)
         about(stderr, xs...)
     end
 end
+
+"""
+    memorylayout(io::IO, T::DataType)
+    memorylayout(io::IO, val::T)
+
+Print to `io` the memory layout of the type `T`, or `val` a particular instance
+of the type.
+
+Specialised implementations should be implemented freely to enhance the utility
+and prettiness of the display.
+"""
+function memorylayout end
+
+"""
+    elaboration(::IO, x::Any)
+
+Elaborate on `x` to io, providing extra information that might be of interest
+seperately from `about` or `memorylayout`.
+
+Specialised implementations should be implemented freely to enhance the utility
+and prettiness of the display.
+
+By convention, this is not invoked when displaying `x` compactly.
+"""
+elaboration(::IO, ::Any) = nothing
 
 const ABOUT_FACES = [
     :about_module => Face(foreground=:bright_red),

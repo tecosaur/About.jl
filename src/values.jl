@@ -1,8 +1,6 @@
-const NUMBER_BIT_FACES = (
-    sign = :bright_blue,
-    exponent = :bright_green,
-    mantissa = :bright_red
-)
+# ------------------
+# Structs, in general
+# ------------------
 
 function about(io::IO, value::T) where {T}
     # Type information
@@ -47,8 +45,6 @@ function about(io::IO, value::T) where {T}
         elaboration(io, value)
     end
 end
-
-elaboration(::IO, ::Any) = nothing
 
 function memorylayout(io::IO, value::T) where {T}
     if isprimitivetype(T)
@@ -113,6 +109,16 @@ function memorylayout(io::IO, value::T) where {T}
     end
     memorylayout(io, T)
 end
+
+# ------------------
+# Numeric types
+# ------------------
+
+const NUMBER_BIT_FACES = (
+    sign = :bright_blue,
+    exponent = :bright_green,
+    mantissa = :bright_red
+)
 
 function memorylayout(io::IO, value::Bool)
     bits = AnnotatedString(bitstring(value))
@@ -198,6 +204,10 @@ function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
                 else Base.Ryu.writeexp(float, fracdp) end)
     end
 end
+
+# ------------------
+# Char/String
+# ------------------
 
 function memorylayout(io::IO, char::Char)
     chunks = reinterpret(NTuple{4, UInt8}, reinterpret(UInt32, char) |> hton)
