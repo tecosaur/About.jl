@@ -15,7 +15,8 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PkgExt = "Pkg"
 
 [compat]
-InteractiveUtils = "1.11.0"
-JuliaSyntaxHighlighting = "1.11.0"
-Pkg = "1.11.0"
-StyledStrings = "1.11.0"
+InteractiveUtils = "1.9"
+JuliaSyntaxHighlighting = "1"
+Pkg = "1.9"
+StyledStrings = "1"
+julia = "1.9"

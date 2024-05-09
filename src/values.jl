@@ -69,6 +69,7 @@ function memorylayout(io::IO, value::T) where {T}
     freprs = AnnotatedString[]
     fshows = AnnotatedString[]
     for (; face, name, type, size, ispointer) in sinfo
+        size <= 0 && continue
         push!(ffaces, face)
         push!(fnames, string(name))
         push!(ftypes, string(type))
@@ -448,6 +449,36 @@ function elaboration(io::IO, char::Char)
         catstr = Base.Unicode.category_string(char)
         catabr = Base.Unicode.category_abbrev(char)
         println(io, S"\n Unicode $stychr, category: $catstr ($catabr)")
+    end
+end
+
+function elaboration(io::IO, str::String)
+    charfreq = Dict{Char, Int}()
+    for char in str
+        charfreq[char] = get(charfreq, char, 0) + 1
+    end
+    charset_index =
+        maximum(c -> if Int(c) < 127; 2
+                elseif Int(c) < 255; 3
+                else 4 end,
+                keys(charfreq),
+                init = 1)
+    charset = ["None", "ASCII", "Extended ASCII", "Unicode"][charset_index]
+    println(io, S" {emphasis:•} Character set: {emphasis:$charset}")
+    control_character_counts = map(
+        c -> get(charfreq, first(c), 0), CONTROL_CHARACTERS)
+    if !all(iszero, control_character_counts)
+        println(io, S" {emphasis:•} Contains \
+          {about_count:$(sum(control_character_counts))} \
+          instances of {about_count:$(sum(>(0), control_character_counts))} \
+          control characters:")
+        for ((char, info), count) in zip(CONTROL_CHARACTERS, control_character_counts)
+            count > 0 &&
+                println(io, S"   {emphasis:∗} {julia_char:$(sprint(show, char))} ({about_count:$count}): $(join(info, ' '))")
+        end
+    end
+    if startswith(str, '\ufeff')
+        println(io, S" {emphasis:•} Prefixed by BOM (byte-order mark)")
     end
 end
 

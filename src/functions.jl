@@ -79,93 +79,85 @@ function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
         println(io, S"  {light:$(highlight(mcall))} {shadow,bold:@} $msrcpretty")
     end
     println(io)
-    @static if VERSION >= v"1.8"
-        about(io, Base.infer_effects(fn, argtypes))
+    about(io, Base.infer_effects(fn, argtypes))
+end
+
+struct CompatibleCoreCompilerConstants end
+
+function Base.getproperty(::CompatibleCoreCompilerConstants, name::Symbol)
+    if isdefined(Core.Compiler, name)
+        getglobal(Core.Compiler, name)
     end
 end
 
-@static if VERSION >= v"1.8"
-    struct CompatibleCoreCompilerConstants end
+const C4 = CompatibleCoreCompilerConstants()
 
-    function Base.getproperty(::CompatibleCoreCompilerConstants, name::Symbol)
-        if isdefined(Core.Compiler, name)
-            getglobal(Core.Compiler, name)
+function about(io::IO, effects::Core.Compiler.Effects)
+    function effectinfo(io::IO, field::Symbol, name::String, labels::Pair{<:Union{UInt8, Bool, Nothing}, AnnotatedString{String}}...;
+                        prefix::AbstractString = "", suffix::AbstractString = "")
+        hasproperty(effects, field) || return
+        value = getproperty(effects, field)
+        icon, accent = if value == C4.ALWAYS_TRUE || value === true
+            '✔', :success
+        elseif value == C4.ALWAYS_FALSE || value === false
+            '✗', :error
+        else
+            '~', :warning
         end
-    end
-
-    const C4 = CompatibleCoreCompilerConstants()
-
-    function about(io::IO, effects::Core.Compiler.Effects)
-        function effectinfo(io::IO, field::Symbol, name::String, labels::Pair{<:Union{UInt8, Bool, Nothing}, AnnotatedString{String}}...;
-                            prefix::AbstractString = "", suffix::AbstractString = "")
-            hasproperty(effects, field) || return
-            value = @static if VERSION >= v"1.9"
-                getproperty(effects, field)
-            else # v1.8
-                getproperty(effects, field).state
-            end
-            icon, accent = if value == C4.ALWAYS_TRUE || value === true
-                '✔', :success
-            elseif value == C4.ALWAYS_FALSE || value === false
-                '✗', :error
-            else
-                '~', :warning
-            end
-            msg = S"{bold,italic,grey:???}"
-            for (id, label) in labels
-                if id == value
-                    msg = label
-                    break
-                end
-            end
-            name_pad_width = 13
-            dispwidth = last(displaysize(io))
-            declr = S" {bold,$accent:$icon $(rpad(name, name_pad_width))}  "
-            print(io, declr)
-            indent = name_pad_width + 5
-            desc = S"{grey:$prefix$(ifelse(isempty(prefix), \"\", \" \"))$msg$(ifelse(isempty(suffix), \"\", \" \"))$suffix}"
-            desclines = wraplines(desc, dispwidth - indent, indent)
-            for (i, line) in enumerate(desclines)
-                i > 1 && print(io, ' '^indent)
-                println(io, line)
+        msg = S"{bold,italic,grey:???}"
+        for (id, label) in labels
+            if id == value
+                msg = label
+                break
             end
         end
-        println(io, S"{bold:Method effects:}")
-        effectinfo(io, :consistent, "consistent",
-                   C4.ALWAYS_TRUE => S"guaranteed to",
-                   C4.ALWAYS_FALSE => S"might {italic:not}",
-                   C4.CONSISTENT_IF_NOTRETURNED => S"when the return value never involved newly allocated mutable objects, will",
-                   C4.CONSISTENT_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, will",
-                   suffix = "return or terminate consistently")
-        effectinfo(io, :effect_free, "effect free",
-                   C4.ALWAYS_TRUE => S"guaranteed to be",
-                   C4.ALWAYS_FALSE => S"might {italic:not} be",
-                   C4.EFFECT_FREE_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, is",
-                   suffix = "free from externally semantically visible side effects")
-        effectinfo(io, :nothrow, "no throw",
-                   C4.ALWAYS_TRUE => S"guaranteed to never",
-                   C4.ALWAYS_FALSE => S"may",
-                   suffix = "throw an exception")
-        effectinfo(io, :terminates, "terminates",
-                   C4.ALWAYS_TRUE => S"guaranteed to",
-                   C4.ALWAYS_FALSE => S"might {italic:not}",
-                   suffix = "always terminate")
-        effectinfo(io, :notaskstate, "no task state",
-                   C4.ALWAYS_TRUE => S"guaranteed not to access task state (allowing migration between tasks)",
-                   C4.ALWAYS_FALSE => S"may access task state (preventing migration between tasks)")
-        effectinfo(io, :inaccessiblememonly, "inaccessible memory only",
-                   C4.ALWAYS_TRUE => S"guaranteed to never access or modify externally accessible mutable memory",
-                   C4.ALWAYS_FALSE => S"may access or modify externally accessible mutable memory",
-                   C4.INACCESSIBLEMEM_OR_ARGMEMONLY => S"may access or modify mutable memory {italic:iff} pointed to by its call arguments")
-        effectinfo(io, :noub, "no undefined behaviour",
-                   C4.ALWAYS_TRUE => S"guaranteed to never",
-                   C4.ALWAYS_FALSE => S"may",
-                   C4.NOUB_IF_NOINBOUNDS => S"so long as {code,julia_macro:@inbounds} is not used or propagated, will not",
-                   suffix = "execute undefined behaviour")
-        effectinfo(io, :nonoverlayed, "non-overlayed",
-                   true => S"never calls any methods from an overlayed method table",
-                   false => S"{warning:may} call methods from an overlayed method table")
+        name_pad_width = 13
+        dispwidth = last(displaysize(io))
+        declr = S" {bold,$accent:$icon $(rpad(name, name_pad_width))}  "
+        print(io, declr)
+        indent = name_pad_width + 5
+        desc = S"{grey:$prefix$(ifelse(isempty(prefix), \"\", \" \"))$msg$(ifelse(isempty(suffix), \"\", \" \"))$suffix}"
+        desclines = wraplines(desc, dispwidth - indent, indent)
+        for (i, line) in enumerate(desclines)
+            i > 1 && print(io, ' '^indent)
+            println(io, line)
+        end
     end
+    println(io, S"{bold:Method effects:}")
+    effectinfo(io, :consistent, "consistent",
+                C4.ALWAYS_TRUE => S"guaranteed to",
+                C4.ALWAYS_FALSE => S"might {italic:not}",
+                C4.CONSISTENT_IF_NOTRETURNED => S"when the return value never involved newly allocated mutable objects, will",
+                C4.CONSISTENT_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, will",
+                suffix = "return or terminate consistently")
+    effectinfo(io, :effect_free, "effect free",
+                C4.ALWAYS_TRUE => S"guaranteed to be",
+                C4.ALWAYS_FALSE => S"might {italic:not} be",
+                C4.EFFECT_FREE_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, is",
+                suffix = "free from externally semantically visible side effects")
+    effectinfo(io, :nothrow, "no throw",
+                C4.ALWAYS_TRUE => S"guaranteed to never",
+                C4.ALWAYS_FALSE => S"may",
+                suffix = "throw an exception")
+    effectinfo(io, :terminates, "terminates",
+                C4.ALWAYS_TRUE => S"guaranteed to",
+                C4.ALWAYS_FALSE => S"might {italic:not}",
+                suffix = "always terminate")
+    effectinfo(io, :notaskstate, "no task state",
+                C4.ALWAYS_TRUE => S"guaranteed not to access task state (allowing migration between tasks)",
+                C4.ALWAYS_FALSE => S"may access task state (preventing migration between tasks)")
+    effectinfo(io, :inaccessiblememonly, "inaccessible memory only",
+                C4.ALWAYS_TRUE => S"guaranteed to never access or modify externally accessible mutable memory",
+                C4.ALWAYS_FALSE => S"may access or modify externally accessible mutable memory",
+                C4.INACCESSIBLEMEM_OR_ARGMEMONLY => S"may access or modify mutable memory {italic:iff} pointed to by its call arguments")
+    effectinfo(io, :noub, "no undefined behaviour",
+                C4.ALWAYS_TRUE => S"guaranteed to never",
+                C4.ALWAYS_FALSE => S"may",
+                C4.NOUB_IF_NOINBOUNDS => S"so long as {code,julia_macro:@inbounds} is not used or propagated, will not",
+                suffix = "execute undefined behaviour")
+    effectinfo(io, :nonoverlayed, "non-overlayed",
+                true => S"never calls any methods from an overlayed method table",
+                false => S"{warning:may} call methods from an overlayed method table")
 end
 
 about(io::IO, fn::Function, sig::NTuple{N, <:Type}) where {N} = about(io, fn, Tuple{sig...})
