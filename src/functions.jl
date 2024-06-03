@@ -80,7 +80,7 @@ function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
             mmod, mfile = msrcinfo.captures
             S"{about_module:$mmod} {shadow,underline:$mfile}"
         end
-        println(io, S"  {light:$(highlight(mcall))} {shadow,bold:@} $msrcpretty")
+        println(io, S"  $(highlight(mcall)) {shadow,bold:@} $msrcpretty")
     end
     println(io)
     about(iio, Base.infer_effects(fn, argtypes))
