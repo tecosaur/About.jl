@@ -97,9 +97,9 @@ function about(io::IO, effects::Core.Compiler.Effects)
                         prefix::AbstractString = "", suffix::AbstractString = "")
         hasproperty(effects, field) || return
         value = getproperty(effects, field)
-        icon, accent = if value == C4.ALWAYS_TRUE || value === true
+        icon, accent = if value === C4.ALWAYS_TRUE || value === true
             '✔', :success
-        elseif value == C4.ALWAYS_FALSE || value === false
+        elseif value === C4.ALWAYS_FALSE || value === false
             '✗', :error
         else
             '~', :warning
@@ -136,16 +136,16 @@ function about(io::IO, effects::Core.Compiler.Effects)
                 C4.EFFECT_FREE_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, is",
                 suffix = "free from externally semantically visible side effects")
     effectinfo(io, :nothrow, "no throw",
-                C4.ALWAYS_TRUE => S"guaranteed to never",
-                C4.ALWAYS_FALSE => S"may",
+                true => S"guaranteed to never",
+                false => S"may",
                 suffix = "throw an exception")
     effectinfo(io, :terminates, "terminates",
-                C4.ALWAYS_TRUE => S"guaranteed to",
-                C4.ALWAYS_FALSE => S"might {italic:not}",
+                true => S"guaranteed to",
+                false => S"might {italic:not}",
                 suffix = "always terminate")
     effectinfo(io, :notaskstate, "no task state",
-                C4.ALWAYS_TRUE => S"guaranteed not to access task state (allowing migration between tasks)",
-                C4.ALWAYS_FALSE => S"may access task state (preventing migration between tasks)")
+                true => S"guaranteed not to access task state (allowing migration between tasks)",
+                false => S"may access task state (preventing migration between tasks)")
     effectinfo(io, :inaccessiblememonly, "inaccessible memory only",
                 C4.ALWAYS_TRUE => S"guaranteed to never access or modify externally accessible mutable memory",
                 C4.ALWAYS_FALSE => S"may access or modify externally accessible mutable memory",
