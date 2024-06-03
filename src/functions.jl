@@ -1,8 +1,9 @@
 function about(io::IO, fn::Function)
-    source = Main.InteractiveUtils.which(parentmodule(fn), Symbol(fn))
+    source = Main.InteractiveUtils.which(parentmodule(fn), nameof(fn))
     methodmodules = getproperty.(methods(fn).ms, :module)
     others = setdiff(methodmodules, [source])
-    fn_name, fn_extra = split(Base.summary(fn), ' ', limit=2)
+    fn_smry = split(Base.summary(fn), ' ', limit=2)
+    fn_name, fn_extra = if length(fn_smry) == 1 (fn_smry[1], "") else fn_smry end
     print(io, S"{julia_funcall:$fn_name} $fn_extra\n Defined in {about_module:$source}")
     if length(others) > 0
         print(io, S"{shadow:({emphasis:$(sum(Ref(source) .=== methodmodules))})} extended in ")
