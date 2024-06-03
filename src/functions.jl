@@ -18,6 +18,9 @@ function about(io::IO, fn::Function)
         end
     end
     print(io, ".\n")
+    if !get(io, :about_inner, false)
+        println(io, S"\n {tip:■ Hint:} {grey:to get more information on a particular method try} {light:$(highlight(\"about($fn, argtypes...)\"))}")
+    end
 end
 
 function about(io::IO, @nospecialize(cfn::ComposedFunction))
@@ -33,7 +36,7 @@ function about(io::IO, @nospecialize(cfn::ComposedFunction))
     println(io)
     for fn in fnstack
         print(io, S" {emphasis:•} ")
-        about(io, fn)
+        about(IOContext(io, :about_inner => true), fn)
     end
 end
 
@@ -45,7 +48,8 @@ function about(io::IO, method::Method)
 end
 
 function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
-    about(io, fn); println(io)
+    iio = IOContext(io, :about_inner => true)
+    about(iio, fn); println(io)
     ms = methods(fn, argtypes)
     if isempty(ms)
         fncall = highlight("$fn($(join(collect(argtypes.types), ", ")))")
@@ -79,7 +83,7 @@ function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
         println(io, S"  {light:$(highlight(mcall))} {shadow,bold:@} $msrcpretty")
     end
     println(io)
-    about(io, Base.infer_effects(fn, argtypes))
+    about(iio, Base.infer_effects(fn, argtypes))
 end
 
 struct CompatibleCoreCompilerConstants end
