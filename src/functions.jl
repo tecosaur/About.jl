@@ -130,38 +130,38 @@ function about(io::IO, effects::Core.Compiler.Effects)
     println(io, S"{bold:Method effects:}")
     effectinfo(io, :consistent, "consistent",
                 C4.ALWAYS_TRUE => S"guaranteed to",
-                C4.ALWAYS_FALSE => S"might {italic:not}",
-                C4.CONSISTENT_IF_NOTRETURNED => S"when the return value never involved newly allocated mutable objects, will",
+                C4.ALWAYS_FALSE => S"{italic:might} not",
+                C4.CONSISTENT_IF_NOTRETURNED => S"when the return value {italic:never} involves newly allocated mutable objects, will",
                 C4.CONSISTENT_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, will",
                 suffix = "return or terminate consistently")
     effectinfo(io, :effect_free, "effect free",
                 C4.ALWAYS_TRUE => S"guaranteed to be",
-                C4.ALWAYS_FALSE => S"might {italic:not} be",
+                C4.ALWAYS_FALSE => S"{italic:might} not be",
                 C4.EFFECT_FREE_IF_INACCESSIBLEMEMONLY => S"when {code:inaccessible memory only} is also proven, is",
                 suffix = "free from externally semantically visible side effects")
     effectinfo(io, :nothrow, "no throw",
-                true => S"guaranteed to never",
-                false => S"may",
+                true => S"guaranteed to {italic:never}",
+                false => S"{italic:may}",
                 suffix = "throw an exception")
     effectinfo(io, :terminates, "terminates",
                 true => S"guaranteed to",
-                false => S"might {italic:not}",
+                false => S"{italic:might} not",
                 suffix = "always terminate")
     effectinfo(io, :notaskstate, "no task state",
                 true => S"guaranteed not to access task state (allowing migration between tasks)",
-                false => S"may access task state (preventing migration between tasks)")
+                false => S"{italic:may} access task state (preventing migration between tasks)")
     effectinfo(io, :inaccessiblememonly, "inaccessible memory only",
-                C4.ALWAYS_TRUE => S"guaranteed to never access or modify externally accessible mutable memory",
-                C4.ALWAYS_FALSE => S"may access or modify externally accessible mutable memory",
-                C4.INACCESSIBLEMEM_OR_ARGMEMONLY => S"may access or modify mutable memory {italic:iff} pointed to by its call arguments")
+                C4.ALWAYS_TRUE => S"guaranteed to {italic:never} access or modify externally accessible mutable memory",
+                C4.ALWAYS_FALSE => S"{italic:may} access or modify externally accessible mutable memory",
+                C4.INACCESSIBLEMEM_OR_ARGMEMONLY => S"{italic:may} access or modify mutable memory {italic:iff} pointed to by its call arguments")
     effectinfo(io, :noub, "no undefined behaviour",
-                C4.ALWAYS_TRUE => S"guaranteed to never",
-                C4.ALWAYS_FALSE => S"may",
+                C4.ALWAYS_TRUE => S"guaranteed to {italic:never}",
+                C4.ALWAYS_FALSE => S"{italic:may}",
                 C4.NOUB_IF_NOINBOUNDS => S"so long as {code,julia_macro:@inbounds} is not used or propagated, will not",
                 suffix = "execute undefined behaviour")
     effectinfo(io, :nonoverlayed, "non-overlayed",
-                true => S"never calls any methods from an overlayed method table",
-                false => S"{warning:may} call methods from an overlayed method table")
+                true => S"{italic:never} calls any methods from an overlayed method table",
+                false => S"{italic:may} call methods from an overlayed method table")
 end
 
 about(io::IO, fn::Function, sig::NTuple{N, <:Type}) where {N} = about(io, fn, Tuple{sig...})
