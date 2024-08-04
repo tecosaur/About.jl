@@ -7,6 +7,12 @@ function, type, value, or something else entirely.
 This package is a utility to help answer that question, it exports a single
 function ~about~, which can be applied to any Julia object.
 
+#+begin_quote
+This makes heavy use of the new ~AnnotatedString~ type provided in Julia 1.11.
+While it can be used with Julia 1.9 and 1.10, the package load time is
+dramatically worse.
+#+end_quote
+
 * Examples
 
 These examples should give an impression of what ~about~ does in practice, though
