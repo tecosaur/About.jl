@@ -242,7 +242,9 @@ end
 memorylayout(io::IO, float::Float64) = floatlayout(io, float, 11)
 memorylayout(io::IO, float::Float32) = floatlayout(io, float, 8)
 memorylayout(io::IO, float::Float16) = floatlayout(io, float, 5)
-memorylayout(io::IO, float::Core.BFloat16) = floatlayout(io, float, 8)
+@static if VERSION >=v"1.11-alpha"
+    memorylayout(io::IO, float::Core.BFloat16) = floatlayout(io, float, 8)
+end
 
 function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
     fsign, fexp, fmant = NUMBER_BIT_FACES.sign, NUMBER_BIT_FACES.exponent, NUMBER_BIT_FACES.mantissa

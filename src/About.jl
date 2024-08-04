@@ -1,9 +1,14 @@
 module About
 
-using Base: AnnotatedString, AnnotatedIOBuffer
 using StyledStrings: @styled_str, Face, face!, addface!
 using JuliaSyntaxHighlighting: highlight
 using InteractiveUtils
+
+@static if VERSION >=v"1.11-alpha"
+    using Base: AnnotatedString, AnnotatedIOBuffer
+else
+    using StyledStrings: AnnotatedString, AnnotatedIOBuffer
+end
 
 const var"@S_str" = var"@styled_str"
 

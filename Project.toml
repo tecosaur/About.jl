@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [deps]
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
-JuliaSyntaxHighlighting = "dc6e5ff7-fb65-4e79-a425-ec3bc9c03011"
+JuliaSyntaxHighlighting = "ac6e5ff7-fb65-4e79-a425-ec3bc9c03011"
 StyledStrings = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 
 [weakdeps]
@@ -16,7 +16,7 @@ PkgExt = "Pkg"
 
 [compat]
 InteractiveUtils = "1.9"
-JuliaSyntaxHighlighting = "1"
+JuliaSyntaxHighlighting = "0.1 - 1"
 Pkg = "1.9"
-StyledStrings = "1"
+StyledStrings = "1.0"
 julia = "1.9"
