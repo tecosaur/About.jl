@@ -119,6 +119,7 @@ function about(io::IO, effects::Core.Compiler.Effects)
         name_pad_width = 13
         dispwidth = last(displaysize(io))
         declr = S" {bold,$accent:$icon $(rpad(name, name_pad_width))}  "
+        get(io, :about_inner, false) === true && print(io, ' ')
         print(io, declr)
         indent = name_pad_width + 5
         desc = S"{grey:$prefix$(ifelse(isempty(prefix), \"\", \" \"))$msg$(ifelse(isempty(suffix), \"\", \" \"))$suffix}"
@@ -128,7 +129,8 @@ function about(io::IO, effects::Core.Compiler.Effects)
             println(io, line)
         end
     end
-    println(io, S"{bold:Method effects:}")
+    get(io, :about_inner, false) === true && print(io, ' ')
+    println(io, S"{bold:Method effects}")
     effectinfo(io, :consistent, "consistent",
                 C4.ALWAYS_TRUE => S"guaranteed to",
                 C4.ALWAYS_FALSE => S"{italic:might} not",
