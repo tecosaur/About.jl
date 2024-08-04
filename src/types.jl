@@ -51,7 +51,7 @@ function about(io::IO, type::Type)
     if Base.issingletontype(type)
         print(io, "singleton ")
     end
-    print(Base.summary(type))
+    print(io, Base.summary(type))
     print(io, S" defined in {about_module:$(parentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
