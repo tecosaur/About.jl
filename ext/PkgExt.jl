@@ -36,9 +36,9 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     end
     isempty(directdeps) && return
     depstrs = map(directdeps) do dep
-        nindirect = length(alldeps(thedeps, dep))
-        if nindirect > 0
-            styled"$(thedeps[dep].name) {shadow:(+$nindirect)}"
+        indirectextras = length(alldeps(thedeps, dep, directdeps))
+        if indirectextras > 0
+            styled"$(thedeps[dep].name) {shadow:(+$indirectextras)}"
         else
             styled"$(thedeps[dep].name)"
         end
@@ -68,12 +68,12 @@ function listdeps(deps::Dict{Base.UUID, Pkg.API.PackageInfo}, pkg::Base.UUID)
     end
 end
 
-function alldeps(deps::Dict{Base.UUID, <:Union{Pkg.Types.PackageEntry, Pkg.API.PackageInfo}}, pkg::Base.UUID)
+function alldeps(deps::Dict{Base.UUID, <:Union{Pkg.Types.PackageEntry, Pkg.API.PackageInfo}}, pkg::Base.UUID, ignore::Vector{Base.UUID} = Base.UUID[])
     depcheck = listdeps(deps, pkg)
     depcollection = Set{Base.UUID}()
     while !isempty(depcheck)
         id = popfirst!(depcheck)
-        id in depcollection && continue
+        id in depcollection || id in ignore && continue
         append!(depcheck, listdeps(deps, id))
         push!(depcollection, id)
     end
