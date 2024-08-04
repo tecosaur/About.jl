@@ -21,6 +21,7 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     println(io)
     isnothing(srcdir) && return
     manifest_file = Pkg.Types.manifestfile_path(pkgdir(mod))
+    project_file = Pkg.Types.projectfile_path(pkgdir(mod))
     thedeps = if !isnothing(manifest_file) && isfile(manifest_file)
         Pkg.Types.read_manifest(manifest_file).deps
     else
@@ -28,6 +29,8 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     end
     directdeps = if haskey(thedeps, pkg.uuid)
         listdeps(thedeps, pkg.uuid)
+    elseif !isnothing(project_file) && isfile(project_file)
+        collect(values(Pkg.Types.read_project(project_file).deps))
     else
         collect(keys(thedeps))
     end
