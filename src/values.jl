@@ -96,11 +96,11 @@ function memorylayout(io::IO, value::T) where {T}
         push!(fshows, read(seekstart(aio), AnnotatedString))
     end
     width = last(displaysize(io)) - 2
-    namewidth = maximum(textwidth, fnames)
-    typewidth = min(maximum(textwidth, ftypes), width ÷ 4)
-    sizewidth = maximum(textwidth, fsizes)
+    namewidth = maximum(textwidth, fnames, init=0)
+    typewidth = min(maximum(textwidth, ftypes, init=0), width ÷ 4)
+    sizewidth = maximum(textwidth, fsizes, init=0)
     width -= 1 + namewidth + 1 + typewidth + 2 + sizewidth
-    reprwidth = min((2 * width) ÷ 3, maximum(textwidth, freprs))
+    reprwidth = min((2 * width) ÷ 3, maximum(textwidth, freprs, init=0))
     showwidth = width - reprwidth
     for (face, name, type, size, brepr, shown) in zip(ffaces, fnames, ftypes, fsizes, freprs, fshows)
         println(io, ' ',
