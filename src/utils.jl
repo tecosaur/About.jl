@@ -26,19 +26,19 @@ splural(c::Vector) = splural(length(c))
 
 function struncate(str::AbstractString, maxwidth::Int, joiner::AbstractString = "…", mode::Symbol = :center)
     textwidth(str) <= maxwidth && return str
-    left, right = firstindex(str) - 1, lastindex(str) + 1
+    left, right = firstindex(str), lastindex(str)
     width = textwidth(joiner)
-    while width < maxwidth
+    while true
         if mode ∈ (:right, :center)
+            (width += textwidth(str[left])) <= maxwidth || break
             left = nextind(str, left)
-            width += textwidth(str[left])
         end
         if mode ∈ (:left, :center) && width < maxwidth
+            (width += textwidth(str[right])) <= maxwidth || break
             right = prevind(str, right)
-            width += textwidth(str[right])
         end
     end
-    str[begin:left] * joiner * str[right:end]
+    str[begin:prevind(str, left)] * joiner * str[nextind(str, right):end]
 end
 
 function columnlist(io::IO, entries::Vector{<:AbstractString};
