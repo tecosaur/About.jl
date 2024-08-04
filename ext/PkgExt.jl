@@ -2,9 +2,11 @@ module PkgExt
 
 using Pkg
 using StyledStrings
-import About: about_pkg, columnlist
+using About: About, about, columnlist
 
-function about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
+using PrecompileTools: @compile_workload
+
+function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     isnothing(pkgversion(mod)) ||
         print(io, styled"  Version {about_module:$(pkgversion(mod))}")
     srcdir = pkgdir(mod)
@@ -73,6 +75,10 @@ function alldeps(deps::Dict{Base.UUID, <:Union{Pkg.Types.PackageEntry, Pkg.API.P
         push!(depcollection, id)
     end
     collect(depcollection)
+end
+
+@compile_workload begin
+    about(devnull, @__MODULE__)
 end
 
 end

@@ -10,6 +10,8 @@ else
     using StyledStrings: AnnotatedString, AnnotatedIOBuffer
 end
 
+using PrecompileTools: @compile_workload
+
 const var"@S_str" = var"@styled_str"
 
 export about
@@ -72,5 +74,12 @@ const ABOUT_FACES = [
 ]
 
 __init__() = foreach(addface!, ABOUT_FACES)
+
+@compile_workload begin
+    about(devnull, FieldInfo)
+    about(devnull, 1)
+    about(devnull, 1.0)
+    about(devnull, nothing)
+end
 
 end
