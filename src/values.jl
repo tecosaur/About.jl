@@ -485,3 +485,32 @@ function elaboration(io::IO, str::String)
 end
 
 # TODO struct
+
+# Memory
+
+function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
+    # TODO: improve this, I think it's alright, but we can do better.
+    # Specifically around showing the "window into system memory".
+    (; ptr, length) = mem
+    nbytes = length * sizeof(T)
+    if length == 0
+        println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(ptr)))}")
+        return
+    end
+    bytes = reinterpret(UInt8, mem)
+    println(io, "\n ",
+            if kind === :atomic "Atomic memory " else "Memory " end,
+            S"block of {emphasis:$(nbytes)} byte$(splural(nbytes)), from \
+              {about_pointer:$(sprint(show, UInt64(ptr)))} to {about_pointer:$(sprint(show, UInt64(ptr + nbytes)))}.")
+    if addrspace !== Core.CPU
+        addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
+        println(io, S" {emphasis:$addressor}-addressed")
+    end
+    if nbytes == 1
+        println(io, "\n  ", bitstring(first(bytes)))
+        println(io, " └", '─'^8, '┘')
+        return
+    end
+    println(io, "\n  ", bitstring(first(bytes)), S"  {shadow:⋯(×$(nbytes-2))⋯}  ", bitstring(last(bytes)))
+    println(io, " └", '─'^8, '┴', S"╴{shadow:⋯(×$(nbytes-2))⋯}╶", '┴', '─'^8, '┘')
+end
