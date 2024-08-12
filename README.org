@@ -23,8 +23,8 @@ julia> about(About)
 Module About [69d22d85-9f48-4c46-bbbe-7ad8341ff72a]
   Version 0.1.0 loaded from ~/.julia/dev/About
 
-Directly depends on 4 packages:
-• PrecompileTools (+5)  • InteractiveUtils (+2)  • StyledStrings  • JuliaSyntaxHighlighting (+2)
+Directly depends on 4 packages (+9 indirectly):
+• PrecompileTools (+5)  • InteractiveUtils (+3)  • StyledStrings  • JuliaSyntaxHighlighting (+1)
 
 Exports 2 names:
 • About  • about
