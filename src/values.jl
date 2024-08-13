@@ -371,19 +371,21 @@ function vecbytes(io::IO, items::DenseVector{T};
     println(io)
 end
 
-function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
-    if mem.length == 0
-        println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
-        return
+@static if VERSION >= v"1.11-alpha"
+    function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
+        if mem.length == 0
+            println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
+            return
+        end
+        println(io, "\n ",
+                if kind === :atomic "Atomic memory block" else "Memory block" end,
+                if addrspace !== Core.CPU
+                    addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
+                    S" ({emphasis:$addressor}-addressed)"
+                else S" ({emphasis:CPU}-addressed)" end,
+                S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * sizeof(T))))}.")
+        vecbytes(io, mem)
     end
-    println(io, "\n ",
-            if kind === :atomic "Atomic memory block" else "Memory block" end,
-            if addrspace !== Core.CPU
-                addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
-                S" ({emphasis:$addressor}-addressed)"
-            else S" ({emphasis:CPU}-addressed)" end,
-            S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * sizeof(T))))}.")
-    vecbytes(io, mem)
 end
 
 # ------------------
