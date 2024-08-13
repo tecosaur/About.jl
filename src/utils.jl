@@ -26,7 +26,7 @@ end
 splural(n::Int) = ifelse(n == 1, "", "s")
 splural(c::Vector) = splural(length(c))
 
-function struncate(str::AbstractString, maxwidth::Int, joiner::AbstractString = "…", mode::Symbol = :center)
+function struncate(str::AbstractString, maxwidth::Int, joiner::Union{AbstractString, AbstractChar} = '…', mode::Symbol = :center)
     textwidth(str) <= maxwidth && return str
     left, right = firstindex(str), lastindex(str)
     width = textwidth(joiner)
