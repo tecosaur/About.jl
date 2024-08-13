@@ -285,6 +285,108 @@ function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
 end
 
 # ------------------
+# Vector/Memory
+# ------------------
+
+function vecbytes(io::IO, items::DenseVector{T};
+                  elshowfn::Function = show,
+                  eltext = "item",
+                  topbar::NamedTuple = (lcap='┌', lbar='╴', bar='─', rbar='╶', rcap='┐', trunc='⋯'),
+                  itemfaces::Vector{Symbol} = FACE_CYCLE,
+                  byteface::Symbol = :light,
+                  bitcolour::Bool = false,
+                  bytevals::Bool = T != UInt8) where {T}
+    nitems = length(items)
+    bytes = reinterpret(UInt8, items)
+    nbytes = length(bytes)
+    if nbytes == 1
+        println(io, "\n ", bitstring(first(bytes)), "\n ", "└──────┘")
+        return
+    end
+    itemoverbar = '┌' * '─'^(8 * sizeof(T) - 2) * '┐'
+    margintextwidth = 4 + textwidth(eltext) + ndigits(nbytes)
+    showbytes = if last(displaysize(io)) - 2 - margintextwidth >=8 * nbytes
+        nbytes
+    else
+        (last(displaysize(io)) - 2 - ndigits(nbytes) - textwidth("⋯(×)⋯") - margintextwidth) ÷ 8
+    end
+    lbytes, rbytes = showbytes ÷ 2, showbytes - showbytes ÷ 2
+    litems, ritems = lbytes ÷ sizeof(T), rbytes ÷ sizeof(T)
+    print(io, "\n ")
+    function fmtitem(val, idx)
+        truncval = struncate(sprint(elshowfn, val), 8 * sizeof(T) - 4, topbar.trunc)
+        padval = cpad(topbar.lbar * truncval * topbar.rbar, 8 * sizeof(T) - 2, topbar.bar)
+        tbar = topbar.lcap * padval * topbar.rcap
+        face = itemfaces[mod1(idx, length(itemfaces))]
+        S"{$face:$tbar}"
+    end
+    for litem in 1:litems
+        print(io, fmtitem(items[litem], litem))
+    end
+    if showbytes < nbytes
+        lbar = 8 * (lbytes - litems * sizeof(T)) - 1
+        facel = itemfaces[mod1(litems + 1, length(itemfaces))]
+        lbar > 0 && print(io, S"{$facel:$(topbar.rcap)$(topbar.bar^lbar)}")
+        print(io, S" {shadow:⋯(×$(lpad(nitems-litems-ritems, ndigits(nbytes-showbytes))))⋯} ")
+        rbar = 8 * (rbytes - ritems * sizeof(T)) - 1
+        facer = itemfaces[mod1(nitems - ritems, length(itemfaces))]
+        rbar > 0 && print(io, S"{$facer:$(topbar.bar^rbar)$(topbar.rcap)}")
+    elseif litems + ritems < nitems
+        face = itemfaces[mod1(litems + 1, length(itemfaces))]
+        print(io, fmtitem(items[litems + 1], litems + 1))
+    end
+    for ritem in nitems-ritems+1:nitems
+        face = FACE_CYCLE[mod1(ritem, length(FACE_CYCLE))]
+        print(io, fmtitem(items[ritem], ritem))
+    end
+    print(io, S" {emphasis:$(lpad(nitems, ndigits(nbytes)))} $eltext$(splural(nitems))")
+    lbstring = AnnotatedString(join(map(bitstring, bytes[1:lbytes])))
+    rbstring = AnnotatedString(join(map(bitstring, bytes[end-rbytes+1:end])))
+    if bitcolour
+        for b in 1:lbytes
+            face!(lbstring[8*(b-1)+1:8*b], itemfaces[mod1(b, length(itemfaces))])
+        end
+        for b in 1:rbytes
+            face!(rbstring[8*(b-1)+1:8*b], itemfaces[mod1(b + nbytes - rbytes, length(itemfaces))])
+        end
+    end
+    for bstr in (lbstring, rbstring), (; match) in eachmatch(r"0+", bstr)
+        face!(match, :shadow)
+    end
+    print(io, "\n ", lbstring, if showbytes < nbytes ' '^(7 + ndigits(nbytes-showbytes)) else "" end, rbstring)
+    if bytevals
+        print(io, ' '^ndigits(nbytes), S"  {shadow:in}\n ")
+        function fmtbyte(b, _itemidx)
+            S"{$byteface:└─0x$(lpad(string(b, base=16), 2, '0'))─┘}"
+        end
+        for b in 1:lbytes
+            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
+        end
+        showbytes < nbytes && print(io, S" {shadow:⋯(×$(nbytes-showbytes))⋯} ")
+        for b in nbytes-rbytes+1:nbytes
+            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
+        end
+        print(io, S" {emphasis:$nbytes} byte$(splural(nbytes))")
+    end
+    println(io)
+end
+
+function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
+    if mem.length == 0
+        println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
+        return
+    end
+    println(io, "\n ",
+            if kind === :atomic "Atomic memory block" else "Memory block" end,
+            if addrspace !== Core.CPU
+                addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
+                S" ({emphasis:$addressor}-addressed)"
+            else S" ({emphasis:CPU}-addressed)" end,
+            S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * sizeof(T))))}.")
+    vecbytes(io, mem)
+end
+
+# ------------------
 # Char/String
 # ------------------
 
@@ -482,80 +584,9 @@ function elaboration(io::IO, str::String)
     if startswith(str, '\ufeff')
         println(io, S" {emphasis:•} Prefixed by BOM (byte-order mark)")
     end
+    vecbytes(io, codeunits(str),
+             eltext = "codepoint", elshowfn = (io, c) -> show(io, Char(c)),
+             bitcolour = true, bytevals = false)
 end
 
 # TODO struct
-
-# Memory
-
-function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
-    nbytes = mem.length * sizeof(T)
-    if mem.length == 0
-        println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
-        return
-    end
-    bytes = reinterpret(UInt8, mem)
-    println(io, "\n ",
-            if kind === :atomic "Atomic memory block" else "Memory block" end,
-            if addrspace !== Core.CPU
-                addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
-                S" ({emphasis:$addressor}-addressed)"
-            else S" ({emphasis:CPU}-addressed)" end,
-            S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + nbytes)))}.")
-    if nbytes == 1
-        println(io, "\n ", bitstring(first(bytes)), "\n ", "└──────┘")
-        return
-    end
-    itemoverbar = '┌' * '─'^(8 * sizeof(T) - 2) * '┐'
-    showbytes = if last(displaysize(io)) - 2 >=8 * nbytes
-        nbytes
-    else
-        (last(displaysize(io)) - 15 - 2*ndigits(nbytes)) ÷ 8
-    end
-    lbytes, rbytes = showbytes ÷ 2, showbytes - showbytes ÷ 2
-    litems, ritems = lbytes ÷ sizeof(T), rbytes ÷ sizeof(T)
-    print(io, "\n ")
-    fmtitem(val) = cpad('╴' * struncate(sprint(show, val), 8 * sizeof(T) - 4, '⋯') * '╶', 8 * sizeof(T) - 2, '─')
-    for litem in 1:litems
-        face = FACE_CYCLE[mod1(litem, length(FACE_CYCLE))]
-        print(io, S"{$face:┌$(fmtitem(mem[litem]))┐}")
-    end
-    if showbytes < nbytes
-        lbar = 8 * (lbytes - litems * sizeof(T)) - 1
-        facel = FACE_CYCLE[mod1(litems + 1, length(FACE_CYCLE))]
-        lbar > 0 && print(io, S"{$facel:┌$('─'^lbar)}")
-        print(io, S" {shadow:⋯(×$(lpad(mem.length-litems-ritems, ndigits(nbytes-showbytes))))⋯} ")
-        rbar = 8 * (rbytes - ritems * sizeof(T)) - 1
-        facer = FACE_CYCLE[mod1(mem.length - ritems, length(FACE_CYCLE))]
-        rbar > 0 && print(io, S"{$facer:$('─'^rbar)┐}")
-    elseif litems + ritems < mem.length
-        face = FACE_CYCLE[mod1(litems + 1, length(FACE_CYCLE))]
-        print(io, S"{$face:┌$(fmtitem(mem[litems + 1]))┐}")
-    end
-    for ritem in mem.length-ritems+1:mem.length
-        face = FACE_CYCLE[mod1(ritem, length(FACE_CYCLE))]
-        print(io, S"{$face:┌$(fmtitem(mem[ritem]))┐}")
-    end
-    print(io, S" {emphasis:$(lpad(mem.length, ndigits(nbytes)))} item$(splural(mem.length))")
-    lbstring = AnnotatedString(join(map(bitstring, bytes[1:lbytes])))
-    rbstring = AnnotatedString(join(map(bitstring, bytes[end-rbytes+1:end])))
-    for bstr in (lbstring, rbstring), (; match) in eachmatch(r"0+", bstr)
-        face!(match, :shadow)
-    end
-    print(io, "\n ", lbstring, if showbytes < nbytes ' '^(7 + ndigits(nbytes-showbytes)) else "" end, rbstring)
-    if T != UInt8
-        print(io, ' '^ndigits(nbytes), S"  {shadow:in}\n ")
-        function fmtbyte(b, _itemidx)
-            S"{light:└─0x$(lpad(string(b, base=16), 2, '0'))─┘}"
-        end
-        for b in 1:lbytes
-            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
-        end
-        showbytes < nbytes && print(io, S" {shadow:⋯(×$(nbytes-showbytes))⋯} ")
-        for b in nbytes-rbytes+1:nbytes
-            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
-        end
-        print(io, S" {emphasis:$nbytes} byte$(splural(nbytes))")
-    end
-    println(io)
-end
