@@ -103,6 +103,20 @@ sum (generic function with 10 methods)
   ✔ non-overlayed  may call methods from an overlayed method table
 ```
 
+## Faces
+
+These are the faces that `About` defines, and can be customised to change the
+style of the output.
+
+- `about_module` (bright red)
+- `about_pointer` (cyan)
+- `about_count` (bold)
+- `about_bytes` (bold)
+- `about_cycle1` (bright blue)
+- `about_cycle2` (bright green)
+- `about_cycle3` (bright yellow)
+- `about_cycle4` (bright magenta)
+
 ## Public API
 
 - `about`
