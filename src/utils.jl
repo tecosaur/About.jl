@@ -1,4 +1,4 @@
-const FACE_CYCLE = [:bright_blue, :bright_green, :bright_yellow, :bright_magenta]
+const FACE_CYCLE = [:about_cycle1, :about_cycle2, :about_cycle3, :about_cycle4]
 
 function humansize(bytes::Integer)
     units = ("B", "kB", "MB", "GB")

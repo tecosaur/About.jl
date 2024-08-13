@@ -223,6 +223,10 @@ const ABOUT_FACES = [
     :about_pointer => Face(foreground=:cyan),
     :about_count => Face(weight=:bold),
     :about_bytes => Face(weight=:bold),
+    :about_cycle1 => Face(inherit=:bright_blue),
+    :about_cycle2 => Face(inherit=:bright_green),
+    :about_cycle3 => Face(inherit=:bright_yellow),
+    :about_cycle4 => Face(inherit=:bright_magenta),
 ]
 
 __init__() = foreach(addface!, ABOUT_FACES)
