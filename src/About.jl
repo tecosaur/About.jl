@@ -34,7 +34,7 @@ Exports 2 names:
 ```julia-repl
 julia> about(ℯ)
 Irrational{:ℯ} (<: AbstractIrrational <: Real <: Number <: Any), occupies 0B.
-singelton
+singleton
 ```
 
 **Applied to a float**
