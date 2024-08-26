@@ -273,10 +273,14 @@ function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
         fraction = reinterpret(Float64, bits & Base.Ryu.MANTISSA_MASK | 0x3ff0000000000000)
         expstr = cpad(if exponent == 1024
                           "Inf"
+                      elseif exponent <= -maxexp
+                          "2^$(-maxexp + 1)"
                       else "2^$exponent" end,
                       expbits - 1, ' ', RoundUp)
         fracstr = cpad(if exponent == 1024
                            ifelse(fraction == 1.0, "1", "NaN")
+                       elseif exponent <= -maxexp
+                           Base.Ryu.writefixed(float / floatmin(float), fracdp + 2)
                        else
                            Base.Ryu.writefixed(fraction, fracdp + 2)
                        end, fracbits, ' ', RoundUp)
