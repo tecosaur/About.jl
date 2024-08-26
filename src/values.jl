@@ -61,7 +61,7 @@ function memorylayout(io::IO, value::T) where {T}
         return
     end
     if Base.issingletontype(T)
-        println(io, S"{italic:singelton}")
+        println(io, S"{italic:singleton}")
         return
     end
     sinfo = structinfo(T)
