@@ -414,6 +414,14 @@ end
 end
 
 # ------------------
+# Symbols (interned)
+# ------------------
+
+function about(io::IO, value::Symbol)
+    println(io, S"Symbol ({julia_comparator:<:} {julia_type:Any}), an {about_bytes:$(sizeof(Ptr))B} reference to a {about_bytes:$(sizeof(value))B} interned string")
+end
+
+# ------------------
 # Char/String
 # ------------------
 
