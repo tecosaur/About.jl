@@ -311,7 +311,7 @@ function vecbytes(io::IO, items::DenseVector{T};
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
     nitems = length(items)
-    tsize, bytes = if isconcretetype(T)
+    tsize, bytes = if Base.allocatedinline(T)
         sizeof(T), reinterpret(UInt8, items)
     else
         sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items),))
@@ -401,7 +401,7 @@ end
             println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
             return
         end
-        tsize = if isconcretetype(T) sizeof(T) else sizeof(Ptr{Nothing}) end
+        tsize = if Base.allocatedinline(T) sizeof(T) else sizeof(Ptr) end
         println(io, "\n ",
                 if kind === :atomic "Atomic memory block" else "Memory block" end,
                 if addrspace !== Core.CPU
