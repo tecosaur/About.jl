@@ -52,7 +52,7 @@ function about(io::IO, method::Method)
     print_effects(io, fn, sig)
 end
 
-function about(io::IO, fn::Function, @nospecialize(argtypes::Type{<:Tuple}))
+function about(io::IO, fn::Union{Function, Type}, @nospecialize(argtypes::Type{<:Tuple}))
     iio = IOContext(io, :about_inner => true)
     about(iio, fn); println(io)
     ms = methods(fn, argtypes)
@@ -171,5 +171,5 @@ function about(io::IO, effects::Core.Compiler.Effects)
                 false => S"{italic:may} call methods from an overlayed method table")
 end
 
-about(io::IO, fn::Function, sig::NTuple{N, <:Type}) where {N} = about(io, fn, Tuple{sig...})
-about(io::IO, fn::Function, sig::Type...) = about(io, fn, sig)
+about(io::IO, fn::Union{Function, Type}, sig::NTuple{N, <:Type}) where {N} = about(io, fn, Tuple{sig...})
+about(io::IO, fn::Union{Function, Type}, sig::Type...) = about(io, fn, sig)
