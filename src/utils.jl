@@ -67,6 +67,9 @@ function columnlist(io::IO, entries::Vector{<:AbstractString};
             thecolumns, thecolwidths = columns, colwidths
         end
     end
+    if isempty(thecolumns)
+        thecolumns, thecolwidths = [entries], maximum(textwidth, entries)
+    end
     for rnum in 1:length(first(thecolumns))
         for cnum in 1:length(thecolumns)
             rnum > length(thecolumns[cnum]) && continue
