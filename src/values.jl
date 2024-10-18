@@ -455,7 +455,11 @@ end
 # ------------------
 
 function memorylayout(io::IO, char::Char)
-    chunks = reinterpret(NTuple{4, UInt8}, reinterpret(UInt32, char) |> hton)
+    chunks = @static if VERSION >= v"1.10"
+        reinterpret(NTuple{4, UInt8}, reinterpret(UInt32, char) |> hton)
+    else
+        Tuple(reinterpret(UInt8, [reinterpret(UInt32, char) |> hton]))
+    end
     get(io, :compact, false) || print(io, "\n ")
     nchunks = something(findlast(!iszero, chunks), 1)
     byte0leading = [1, 3, 4, 5][nchunks]
