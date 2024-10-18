@@ -33,7 +33,7 @@ function structinfo(T::Type)
         else
             offset = size = contentsize = -1 # Cannot deduce easily
         end
-        FieldInfo(i, FACE_CYCLE[i % length(FACE_CYCLE) + 1],
+        FieldInfo(i, FACE_CYCLE[mod1(i, length(FACE_CYCLE))],
                   offset,
                   size, contentsize,
                   contentsize == 0, # ispointer
