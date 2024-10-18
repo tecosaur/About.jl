@@ -79,6 +79,11 @@ function memorylayout(io::IO, value::T) where {T}
         push!(ftypes, string(type))
         push!(fsizes, join(humansize(size)))
         aio = AnnotatedIOBuffer()
+        if !isdefined(value, name)
+            push!(freprs, S"{julia_builtin:#undef}")
+            push!(fshows, S"Uninitialised value")
+            continue
+        end
         fvalue = getfield(value, name)
         if Base.issingletontype(typeof(fvalue))
             push!(freprs, S"{shadow:singleton}")
@@ -137,6 +142,8 @@ function about(io::IO, mod::Module)
         println(io)
     end
     function classify(m::Module, name::Symbol)
+        isdefined(m, name) ||
+            return (; name, str = S"$name {shadow:(undefined)}", kind=:undefined, parent=m, order=5)
         val = getglobal(mod, name)
         order, kind, face, parent = if val isa Module
             0, :module, :about_module, val
@@ -301,13 +308,17 @@ function vecbytes(io::IO, items::DenseVector{T};
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
     nitems = length(items)
-    bytes = reinterpret(UInt8, items)
+    tsize, bytes = if isconcretetype(T)
+        sizeof(T), reinterpret(UInt8, items)
+    else
+        sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items),))
+    end
     nbytes = length(bytes)
     if nbytes == 1
         println(io, "\n ", bitstring(first(bytes)), "\n ", "└──────┘")
         return
     end
-    itemoverbar = '┌' * '─'^(8 * sizeof(T) - 2) * '┐'
+    itemoverbar = '┌' * '─'^(8 * tsize - 2) * '┐'
     margintextwidth = 4 + textwidth(eltext) + ndigits(nbytes)
     showbytes = if last(displaysize(io)) - 2 - margintextwidth >=8 * nbytes
         nbytes
@@ -315,33 +326,39 @@ function vecbytes(io::IO, items::DenseVector{T};
         (last(displaysize(io)) - 2 - ndigits(nbytes) - textwidth("⋯(×)⋯") - margintextwidth) ÷ 8
     end
     lbytes, rbytes = showbytes ÷ 2, showbytes - showbytes ÷ 2
-    litems, ritems = lbytes ÷ sizeof(T), rbytes ÷ sizeof(T)
+    litems, ritems = lbytes ÷ tsize, rbytes ÷ tsize
     print(io, "\n ")
-    function fmtitem(val, idx)
-        truncval = struncate(sprint(elshowfn, val), 8 * sizeof(T) - 4, topbar.trunc)
-        padval = cpad(topbar.lbar * truncval * topbar.rbar, 8 * sizeof(T) - 2, topbar.bar)
+    function fmtitem(arr, idx)
+        truncval = struncate(
+            if isassigned(arr, idx)
+                sprint(elshowfn, arr[idx])
+            else
+                "#undef"
+            end,
+            8 * tsize - 4, topbar.trunc)
+        padval = cpad(topbar.lbar * truncval * topbar.rbar, 8 * tsize - 2, topbar.bar)
         tbar = topbar.lcap * padval * topbar.rcap
         face = itemfaces[mod1(idx, length(itemfaces))]
         S"{$face:$tbar}"
     end
     for litem in 1:litems
-        print(io, fmtitem(items[litem], litem))
+        print(io, fmtitem(items, litem))
     end
     if showbytes < nbytes
-        lbar = 8 * (lbytes - litems * sizeof(T)) - 1
+        lbar = 8 * (lbytes - litems * tsize) - 1
         facel = itemfaces[mod1(litems + 1, length(itemfaces))]
         lbar > 0 && print(io, S"{$facel:$(topbar.rcap)$(topbar.bar^lbar)}")
         print(io, S" {shadow:⋯(×$(lpad(nitems-litems-ritems, ndigits(nbytes-showbytes))))⋯} ")
-        rbar = 8 * (rbytes - ritems * sizeof(T)) - 1
+        rbar = 8 * (rbytes - ritems * tsize) - 1
         facer = itemfaces[mod1(nitems - ritems, length(itemfaces))]
         rbar > 0 && print(io, S"{$facer:$(topbar.bar^rbar)$(topbar.rcap)}")
     elseif litems + ritems < nitems
         face = itemfaces[mod1(litems + 1, length(itemfaces))]
-        print(io, fmtitem(items[litems + 1], litems + 1))
+        print(io, fmtitem(items, litems + 1))
     end
     for ritem in nitems-ritems+1:nitems
         face = FACE_CYCLE[mod1(ritem, length(FACE_CYCLE))]
-        print(io, fmtitem(items[ritem], ritem))
+        print(io, fmtitem(items, ritem))
     end
     print(io, S" {emphasis:$(lpad(nitems, ndigits(nbytes)))} $eltext$(splural(nitems))")
     lbstring = AnnotatedString(join(map(bitstring, bytes[1:lbytes])))
@@ -364,11 +381,11 @@ function vecbytes(io::IO, items::DenseVector{T};
             S"{$byteface:└─0x$(lpad(string(b, base=16), 2, '0'))─┘}"
         end
         for b in 1:lbytes
-            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
+            print(io, fmtbyte(bytes[b], fld1(b, tsize)))
         end
         showbytes < nbytes && print(io, S" {shadow:⋯(×$(nbytes-showbytes))⋯} ")
         for b in nbytes-rbytes+1:nbytes
-            print(io, fmtbyte(bytes[b], fld1(b, sizeof(T))))
+            print(io, fmtbyte(bytes[b], fld1(b, tsize)))
         end
         print(io, S" {emphasis:$nbytes} byte$(splural(nbytes))")
     end
@@ -381,13 +398,14 @@ end
             println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
             return
         end
+        tsize = if isconcretetype(T) sizeof(T) else sizeof(Ptr{Nothing}) end
         println(io, "\n ",
                 if kind === :atomic "Atomic memory block" else "Memory block" end,
                 if addrspace !== Core.CPU
                     addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
                     S" ({emphasis:$addressor}-addressed)"
                 else S" ({emphasis:CPU}-addressed)" end,
-                S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * sizeof(T))))}.")
+                S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
         vecbytes(io, mem)
     end
 end
