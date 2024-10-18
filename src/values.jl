@@ -288,10 +288,13 @@ function floatlayout(io::IO, float::AbstractFloat, expbits::Int)
         end
         hl_vals = S"{$fsign,bold:$sign}{$fexp:$expstr}{bold:×}{$fmant:$fracstr}"
         hl_more = S"  {$fexp:exponent}$(' '^17){$fmant:mantissa / fraction}"
+        fval = if hasmethod(Base.Ryu.writefixed, Tuple{typeof(float), Int})
+            float
+        else widen(typeof(float))(float) end
         println(io, "\n ", hl_bits, " \n ", hl_info, "\n ", hl_vals,
                 S"\n {bold:=} ", if -8 < exponent < 8
-                    Base.Ryu.writefixed(float, fracdp)
-                else Base.Ryu.writeexp(float, fracdp) end)
+                    Base.Ryu.writefixed(fval, fracdp)
+                else Base.Ryu.writeexp(fval, fracdp) end)
     end
 end
 
