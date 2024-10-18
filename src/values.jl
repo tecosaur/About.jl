@@ -405,20 +405,40 @@ function vecbytes(io::IO, items::DenseVector{T};
 end
 
 @static if VERSION >= v"1.11-alpha"
+    addrspacelabel(::Core.AddrSpace{T}) where {T} = String(nameof(T))
+    addrspacelabel(::Core.AddrSpace{Core}) = "CPU"
+    addrspacelabel(::GenericMemory{_kind, _T, addrspace}) where {_kind, _T, addrspace} =
+        addrspacelabel(addrspace)
+
     function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
         if mem.length == 0
             println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
             return
         end
-        tsize = if Base.allocatedinline(T) sizeof(T) else sizeof(Ptr) end
+        isptrs = Base.allocatedinline(T)
+        tsize = if isptrs sizeof(T) else sizeof(Ptr) end
         println(io, "\n ",
                 if kind === :atomic "Atomic memory block" else "Memory block" end,
-                if addrspace !== Core.CPU
-                    addressor = (((::Core.AddrSpace{T}) where {T}) -> T)(addrspace) |> nameof |> String
-                    S" ({emphasis:$addressor}-addressed)"
-                else S" ({emphasis:CPU}-addressed)" end,
-                S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
-        vecbytes(io, mem, eltext = if Base.allocatedinline(T) "item" else "pointer" end)
+                S" ({emphasis:$(addrspacelabel(addrspace))}-addressed) \
+                  from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
+        vecbytes(io, mem, eltext = if isptrs "item" else "pointer" end)
+    end
+
+    function memorylayout(io::IO, arr::Array{T}) where {T}
+        invoke(memorylayout, Tuple{IO, Any}, io, arr)
+        isptrs = Base.allocatedinline(T)
+        tsize = if isptrs sizeof(T) else sizeof(Ptr) end
+        memtypename = let alias = Base.make_typealias(fieldtype(typeof(arr), 1))
+            if !isnothing(alias)
+                first(alias).name
+            else
+                nameof(fieldtype(typeof(arr), 1))
+            end
+        end
+        println(S"\n {julia_type:$T} contents exist on the {emphasis:$(addrspacelabel(arr.ref.mem))} \
+                  within the {$(first(FACE_CYCLE)):$(fieldname(typeof(arr), 1))}{shadow:::}{$(first(FACE_CYCLE)):$memtypename} \
+                  from {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr + arr.ref.mem.length * tsize)))}.")
+        vecbytes(io, arr.ref.mem, eltext = if isptrs "item" else "pointer" end)
     end
 end
 
