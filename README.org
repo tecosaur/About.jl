@@ -33,7 +33,7 @@ Exports 2 names:
 #+begin_src julia-repl
 julia> about(ℯ)
 Irrational{:ℯ} (<: AbstractIrrational <: Real <: Number <: Any), occupies 0B.
-singelton
+singleton
 #+end_src
 
 #+begin_src julia-repl
