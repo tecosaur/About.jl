@@ -338,7 +338,7 @@ function vecbytes(io::IO, items::DenseVector{T};
     function fmtitem(arr, idx)
         truncval = struncate(
             if isassigned(arr, idx)
-                sval = sprint(elshowfn, arr[idx])
+                sval = sprint(elshowfn, arr[idx], context = :typeinfo => T)
                 if Base.allocatedinline(T)
                     AnnotatedString(sval)
                 else
