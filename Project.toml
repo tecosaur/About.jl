@@ -1,7 +1,7 @@
 name = "About"
 uuid = "69d22d85-9f48-4c46-bbbe-7ad8341ff72a"
 authors = ["TEC <git@tecosaur.net>"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
