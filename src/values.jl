@@ -338,9 +338,14 @@ function vecbytes(io::IO, items::DenseVector{T};
     function fmtitem(arr, idx)
         truncval = struncate(
             if isassigned(arr, idx)
-                sprint(elshowfn, arr[idx])
+                sval = sprint(elshowfn, arr[idx])
+                if Base.allocatedinline(T)
+                    AnnotatedString(sval)
+                else
+                    S"{about_pointer:&}$sval"
+                end
             else
-                "#undef"
+                S"#undef"
             end,
             8 * tsize - 4, topbar.trunc)
         padval = cpad(topbar.lbar * truncval * topbar.rbar, 8 * tsize - 2, topbar.bar)
@@ -413,7 +418,7 @@ end
                     S" ({emphasis:$addressor}-addressed)"
                 else S" ({emphasis:CPU}-addressed)" end,
                 S" from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
-        vecbytes(io, mem)
+        vecbytes(io, mem, eltext = if Base.allocatedinline(T) "item" else "pointer" end)
     end
 end
 
