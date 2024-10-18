@@ -144,7 +144,7 @@ function about(io::IO, mod::Module)
     function classify(m::Module, name::Symbol)
         isdefined(m, name) ||
             return (; name, str = S"$name {shadow:(undefined)}", kind=:undefined, parent=m, order=5)
-        val = getglobal(mod, name)
+        val = getglobal(m, name)
         order, kind, face, parent = if val isa Module
             0, :module, :about_module, val
         elseif val isa Function && first(String(name)) == '@'
@@ -156,7 +156,7 @@ function about(io::IO, mod::Module)
                 m else parentmodule(val) end
         else
             4, :value, :julia_identifier, if Base.issingletontype(typeof(val))
-                parentmodule(typeof(m))
+                parentmodule(typeof(val))
             else
                 m
             end
