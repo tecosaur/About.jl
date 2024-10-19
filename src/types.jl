@@ -101,7 +101,7 @@ function memorylayout(io::IO, type::DataType)
     descs = AnnotatedString[]
     for (; i, size, contentsize, ispointer) in si
         size <= 0 && continue
-        color = FACE_CYCLE[i % length(FACE_CYCLE) + 1]
+        color = FACE_CYCLE[mod1(i, length(FACE_CYCLE))]
         width = max(2, memscale * size÷memstep)
         fsize, funits = humansize(size)
         desc = if ispointer
