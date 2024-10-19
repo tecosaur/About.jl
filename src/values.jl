@@ -315,7 +315,7 @@ function vecbytes(io::IO, items::DenseVector{T};
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
     nitems = length(items)
-    tsize, bytes = if Base.allocatedinline(T)
+    tsize, bytes = if hassizeof(T)
         sizeof(T), reinterpret(UInt8, items)
     else
         sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items),))
@@ -339,7 +339,7 @@ function vecbytes(io::IO, items::DenseVector{T};
         truncval = struncate(
             if isassigned(arr, idx)
                 sval = sprint(elshowfn, arr[idx], context = :typeinfo => T)
-                if Base.allocatedinline(T)
+                if hassizeof(T)
                     AnnotatedString(sval)
                 else
                     S"{about_pointer:&}$sval"
@@ -415,19 +415,19 @@ end
             println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
             return
         end
-        isptrs = Base.allocatedinline(T)
-        tsize = if isptrs sizeof(T) else sizeof(Ptr) end
+        nonptr = hassizeof(T)
+        tsize = if nonptr sizeof(T) else sizeof(Ptr) end
         println(io, "\n ",
                 if kind === :atomic "Atomic memory block" else "Memory block" end,
                 S" ({emphasis:$(addrspacelabel(addrspace))}-addressed) \
                   from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
-        vecbytes(io, mem, eltext = if isptrs "item" else "pointer" end)
+        vecbytes(io, mem, eltext = if nonptr "item" else "pointer" end)
     end
 
     function memorylayout(io::IO, arr::Array{T}) where {T}
         invoke(memorylayout, Tuple{IO, Any}, io, arr)
-        isptrs = Base.allocatedinline(T)
-        tsize = if isptrs sizeof(T) else sizeof(Ptr) end
+        nonptr = hassizeof(T)
+        tsize = if nonptr sizeof(T) else sizeof(Ptr) end
         memtypename = let alias = Base.make_typealias(fieldtype(typeof(arr), 1))
             if !isnothing(alias)
                 first(alias).name
@@ -438,7 +438,7 @@ end
         println(S"\n {julia_type:$T} contents exist on the {emphasis:$(addrspacelabel(arr.ref.mem))} \
                   within the {$(first(FACE_CYCLE)):$(fieldname(typeof(arr), 1))}{shadow:::}{$(first(FACE_CYCLE)):$memtypename} \
                   from {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr + arr.ref.mem.length * tsize)))}.")
-        vecbytes(io, arr.ref.mem, eltext = if isptrs "item" else "pointer" end)
+        vecbytes(io, arr.ref.mem, eltext = if nonptr "item" else "pointer" end)
     end
 end
 

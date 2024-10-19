@@ -14,14 +14,14 @@ function humansize(bytes::Integer)
     end, units[1+magnitude]
 end
 
-function hassizeof(type::Type)
-    !isconcretetype(type) && return false
-    @static if VERSION >= v"1.11-alpha"
-        type <: GenericMemory && return false
-    end
-    type in (Symbol, String, Core.SimpleVector) && return false
-    true
-end
+"""
+    hassizeof(type::Type)
+
+Check if `sizeof(type)` is valid/will succeed. Currently just checks
+`Base.allocatedinline`, but I want to be able to better communicate what I'm
+trying to check.
+"""
+const hassizeof = Base.allocatedinline
 
 function cpad(s, n::Integer, pad::Union{AbstractString, AbstractChar}=' ', r::RoundingMode = RoundToZero)
     rpad(lpad(s, div(n+textwidth(s), 2, r), pad), n, pad)
