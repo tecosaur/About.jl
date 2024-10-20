@@ -4,7 +4,7 @@
 Sometimes you want to know more /about/ what you're working with, whether it be a
 function, type, value, or something else entirely.
 
-This package is a utility to help answer that question, it exports a single
+This package is a utility to help answer that question. It exports a single
 function ~about~, which can be applied to any Julia object.
 
 #+begin_quote
