@@ -14,13 +14,18 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     isnothing(pkgversion(mod)) ||
         print(io, styled"  Version {about_module:$(pkgversion(mod))}")
     srcdir = pkgdir(mod)
+    stdlibdir = Base.load_path_expand("@stdlib")
     if isnothing(srcdir)
-        print(io, styled" (builtin)")
+        print(io, styled" {light:(builtin)}")
     else
         srcdir = Base.fixup_stdlib_path(srcdir)
         srcdir = something(Base.find_source_file(srcdir), srcdir)
-        srcdir = contractuser(srcdir)
-        print(io, styled" loaded from {light,underline:$srcdir}")
+        if startswith(srcdir, stdlibdir)
+            print(io, styled" {light:(Julia $(VERSION.major).$(VERSION.minor) standard library)}")
+        else
+            srcdir = contractuser(srcdir)
+            print(io, styled" loaded from {light,underline:$srcdir}")
+        end
     end
     println(io)
     isnothing(srcdir) && return
@@ -52,8 +57,23 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
         else
             nothing, 0
         end
+        pkgsource = if depinfo isa Pkg.API.PackageInfo
+            depinfo.source
+        elseif depinfo isa Pkg.Types.PackageEntry
+            if !isnothing(depinfo.path)
+                depinfo.path
+            elseif !isnothing(depinfo.name) && !isnothing(depinfo.uuid)
+                depid = Base.PkgId(depinfo.uuid, depinfo.name)
+                depmod = get(Base.loaded_modules, depid, nothing)
+                if !isnothing(depmod)
+                    pkgdir(depmod)
+                end
+            end
+        end
         if isnothing(depinfo)
             styled"{italic,light:$(dep)} {shadow:(unknown)}"
+        elseif !isnothing(pkgsource) && startswith(pkgsource, stdlibdir)
+            styled"{light:$(depinfo.name)} {shadow:(stdlib)}"
         elseif indirectextras > 0
             styled"$(depinfo.name) {shadow:(+$indirectextras)}"
         else
