@@ -5,26 +5,26 @@
 module PkgExt
 
 using Pkg
-using StyledStrings
+using StyledStrings: @styled_str as @S_str
 using About: About, about, columnlist
 
 using PrecompileTools: @compile_workload
 
 function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     isnothing(pkgversion(mod)) ||
-        print(io, styled"  Version {about_module:$(pkgversion(mod))}")
+        print(io, S"  Version {about_module:$(pkgversion(mod))}")
     srcdir = pkgdir(mod)
     stdlibdir = Base.load_path_expand("@stdlib")
     if isnothing(srcdir)
-        print(io, styled" {light:(builtin)}")
+        print(io, S" {light:(builtin)}")
     else
         srcdir = Base.fixup_stdlib_path(srcdir)
         srcdir = something(Base.find_source_file(srcdir), srcdir)
         if startswith(srcdir, stdlibdir)
-            print(io, styled" {light:(Julia $(VERSION.major).$(VERSION.minor) standard library)}")
+            print(io, S" {light:(Julia $(VERSION.major).$(VERSION.minor) standard library)}")
         else
             srcdir = contractuser(srcdir)
-            print(io, styled" loaded from {light,underline:$srcdir}")
+            print(io, S" loaded from {light,underline:$srcdir}")
         end
     end
     println(io)
@@ -71,20 +71,20 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
             end
         end
         if isnothing(depinfo)
-            styled"{italic,light:$(dep)} {shadow:(unknown)}"
+            S"{italic,light:$(dep)} {shadow:(unknown)}"
         elseif !isnothing(pkgsource) && startswith(pkgsource, stdlibdir)
-            styled"{light:$(depinfo.name)} {shadow:(stdlib)}"
+            S"{light:$(depinfo.name)} {shadow:(stdlib)}"
         elseif indirectextras > 0
-            styled"$(depinfo.name) {shadow:(+$indirectextras)}"
+            S"$(depinfo.name) {shadow:(+$indirectextras)}"
         else
-            styled"$(depinfo.name)"
+            S"$(depinfo.name)"
         end
     end
     indirect_depcount = length(alldeps(thedeps, pkg.uuid) ∪ directdeps) - length(depstrs)
     indirect_info = if indirect_depcount > 0
-        styled" {shadow:(+$indirect_depcount indirectly)}"
-    else styled"" end
-    println(io, styled"\n{bold:Directly depends on {emphasis:$(length(directdeps))} \
+        S" {shadow:(+$indirect_depcount indirectly)}"
+    else S"" end
+    println(io, S"\n{bold:Directly depends on {emphasis:$(length(directdeps))} \
                        package$(ifelse(length(directdeps) == 1, \"\", \"s\"))}$indirect_info:")
     columnlist(io, depstrs)
 end
