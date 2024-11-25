@@ -26,9 +26,14 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     isnothing(srcdir) && return
     manifest_file = Pkg.Types.manifestfile_path(pkgdir(mod))
     project_file = Pkg.Types.projectfile_path(pkgdir(mod))
+    extradeps = Dict{Base.UUID, Pkg.Types.PackageEntry}()
     thedeps = if !isnothing(manifest_file) && isfile(manifest_file)
         Pkg.Types.read_manifest(manifest_file).deps
     else
+        rootmanifest = replace(Base.load_path_expand("@v#.#"), "Project.toml" => "Manifest.toml")
+        if isfile(rootmanifest)
+            extradeps = Pkg.Types.read_manifest(rootmanifest).deps
+        end
         Pkg.dependencies()
     end
     directdeps = if haskey(thedeps, pkg.uuid)
@@ -40,11 +45,19 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     end
     isempty(directdeps) && return
     depstrs = map(directdeps) do dep
-        indirectextras = length(alldeps(thedeps, dep, directdeps))
-        if indirectextras > 0
-            styled"$(thedeps[dep].name) {shadow:(+$indirectextras)}"
+        depinfo, indirectextras = if haskey(thedeps, dep)
+            thedeps[dep], length(alldeps(thedeps, dep, directdeps))
+        elseif haskey(extradeps, dep)
+            extradeps[dep], length(alldeps(extradeps, dep, directdeps))
         else
-            styled"$(thedeps[dep].name)"
+            nothing, 0
+        end
+        if isnothing(depinfo)
+            styled"{italic,light:$(dep)} {shadow:(unknown)}"
+        elseif indirectextras > 0
+            styled"$(depinfo.name) {shadow:(+$indirectextras)}"
+        else
+            styled"$(depinfo.name)"
         end
     end
     indirect_depcount = length(alldeps(thedeps, pkg.uuid) ∪ directdeps) - length(depstrs)
