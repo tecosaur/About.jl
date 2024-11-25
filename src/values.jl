@@ -315,17 +315,16 @@ function vecbytes(io::IO, items::DenseVector{T};
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
     nitems = length(items)
-    tsize, bytes = if hassizeof(T)
+    tsize, bytes = if hassizeof(T) && Base.array_subpadding(UInt8, T)
         sizeof(T), reinterpret(UInt8, items)
     else
-        sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items),))
+        sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items)))
     end
     nbytes = length(bytes)
     if nbytes == 1
         println(io, "\n ", bitstring(first(bytes)), "\n ", "└──────┘")
         return
     end
-    itemoverbar = '┌' * '─'^(8 * tsize - 2) * '┐'
     margintextwidth = 4 + textwidth(eltext) + ndigits(nbytes)
     showbytes = if last(displaysize(io)) - 2 - margintextwidth >=8 * nbytes
         nbytes
@@ -359,7 +358,7 @@ function vecbytes(io::IO, items::DenseVector{T};
     if showbytes < nbytes
         lbar = 8 * (lbytes - litems * tsize) - 1
         facel = itemfaces[mod1(litems + 1, length(itemfaces))]
-        lbar > 0 && print(io, S"{$facel:$(topbar.rcap)$(topbar.bar^lbar)}")
+        lbar > 0 && print(io, S"{$facel:$(topbar.lcap)$(topbar.bar^lbar)}")
         print(io, S" {shadow:⋯(×$(lpad(nitems-litems-ritems, ndigits(nbytes-showbytes))))⋯} ")
         rbar = 8 * (rbytes - ritems * tsize) - 1
         facer = itemfaces[mod1(nitems - ritems, length(itemfaces))]
@@ -369,7 +368,7 @@ function vecbytes(io::IO, items::DenseVector{T};
         print(io, fmtitem(items, litems + 1))
     end
     for ritem in nitems-ritems+1:nitems
-        face = FACE_CYCLE[mod1(ritem, length(FACE_CYCLE))]
+        face = itemfaces[mod1(ritem, length(itemfaces))]
         print(io, fmtitem(items, ritem))
     end
     print(io, S" {emphasis:$(lpad(nitems, ndigits(nbytes)))} $eltext$(splural(nitems))")
@@ -438,7 +437,7 @@ end
         println(S"\n {julia_type:$T} contents exist on the {emphasis:$(addrspacelabel(arr.ref.mem))} \
                   within the {$(first(FACE_CYCLE)):$(fieldname(typeof(arr), 1))}{shadow:::}{$(first(FACE_CYCLE)):$memtypename} \
                   from {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr + arr.ref.mem.length * tsize)))}.")
-        vecbytes(io, arr.ref.mem, eltext = if nonptr "item" else "pointer" end)
+        vecbytes(io, arr, eltext = if nonptr "item" else "pointer" end)
     end
 end
 
@@ -492,7 +491,7 @@ function memorylayout(io::IO, char::Char)
     end
     if get(io, :compact, false) == true
         print(io, ustr, ' ')
-    else let
+    else
         current_bit = byte0leading
         print(io, ' '^byte0leading)
         for (i, ubyte, nbits, color) in zip(1:length(ubytes), ubytes, bit_spreads,
@@ -521,7 +520,7 @@ function memorylayout(io::IO, char::Char)
             current_bit = next_bit
         end
         print(io, "\n ")
-    end end
+    end
     for (i, (chunk, coloring)) in enumerate(zip(chunks, chunk_coloring))
         cbits = bitstring(chunk)
         cstr = if i > nchunks
