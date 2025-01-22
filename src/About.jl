@@ -130,13 +130,15 @@ style of the output.
 module About
 
 using StyledStrings: @styled_str, Face, face!, addface!
-using JuliaSyntaxHighlighting: highlight
+using JuliaSyntaxHighlighting
 using InteractiveUtils
 
-@static if VERSION >=v"1.11-alpha"
+@static if v"1.11-alpha" <= VERSION < v"1.12-alpha"
     using Base: AnnotatedString, AnnotatedIOBuffer
+    const highlight = identity
 else
     using StyledStrings: AnnotatedString, AnnotatedIOBuffer
+    const highlight = JuliaSyntaxHighlighting.highlight
 end
 
 using PrecompileTools: @compile_workload
