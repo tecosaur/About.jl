@@ -17,11 +17,27 @@ end
 """
     hassizeof(type::Type)
 
-Check if `sizeof(type)` is valid/will succeed. Currently just checks
-`Base.allocatedinline`, but I want to be able to better communicate what I'm
-trying to check.
+Predict whether `sizeof(type)` is valid/will succeed.
+
+The implementation is based on a reading of `jl_f_sizeof` in `builtins.c`.
 """
-const hassizeof = Base.allocatedinline
+function hassizeof(@nospecialize(T::Type))
+    if Base.isabstracttype(T) || T == Union{}
+        false
+    elseif T isa UnionAll || T isa Union
+        Tu = Base.unwrap_unionall(T)
+        # It would be good to call `jl_uniontype_size`
+        Tu isa DataType
+    elseif T ∈ (Symbol, String, Core.SimpleVector)
+        false
+    elseif @static if VERSION >= v"1.11" T <: GenericMemory else false end
+        false
+    elseif T isa DataType
+        Base.isconcretetype(T)
+    else
+        Base.allocatedinline(T)
+    end
+end
 
 function cpad(s, n::Integer, pad::Union{AbstractString, AbstractChar}=' ', r::RoundingMode = RoundToZero)
     rpad(lpad(s, div(n+textwidth(s), 2, r), pad), n, pad)
