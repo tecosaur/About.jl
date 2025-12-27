@@ -102,7 +102,7 @@ end
 const C4 = CompatibleCoreCompilerConstants()
 
 function about(io::IO, effects::Core.Compiler.Effects)
-    function effectinfo(io::IO, field::Symbol, name::String, labels::Pair{<:Union{UInt8, Bool, Nothing}, AnnotatedString{String}}...;
+    function effectinfo(io::IO, field::Symbol, name::String, labels::Pair{<:Union{UInt8, Bool, Nothing}, <:AnnotatedString{String}}...;
                         prefix::AbstractString = "", suffix::AbstractString = "")
         hasproperty(effects, field) || return
         value = getproperty(effects, field)
@@ -169,6 +169,9 @@ function about(io::IO, effects::Core.Compiler.Effects)
     effectinfo(io, :nonoverlayed, "non-overlayed",
                 true => S"{italic:never} calls any methods from an overlayed method table",
                 false => S"{italic:may} call methods from an overlayed method table")
+    effectinfo(io, :nortcall, "no return_type call",
+                true => S"{italic:never} calls {code:Core.Compiler.return_type}",
+                false => S"{italic:may} call {code:Core.Compiler.return_type}")
 end
 
 about(io::IO, fn::Union{Function, Type}, sig::NTuple{N, <:Type}) where {N} = about(io, fn, Tuple{sig...})
