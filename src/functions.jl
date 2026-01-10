@@ -3,9 +3,12 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 function about(io::IO, fn::Function)
-    source = Main.InteractiveUtils.which(parentmodule(fn), nameof(fn))
-    methodmodules = getproperty.(methods(fn).ms, :module)
-    others = setdiff(methodmodules, [source])
+    methodmodules = [nameof(m.module) for m in methods(fn).ms]
+    source, others = if startswith(String(nameof(fn)), '#') && length(methodmodules) == 1
+        first(methodmodules), Symbol[]
+    else
+        nameof(Main.InteractiveUtils.which(parentmodule(fn), nameof(fn))), setdiff(methodmodules, [source])
+    end
     fn_smry = split(Base.summary(fn), ' ', limit=2)
     fn_name, fn_extra = if length(fn_smry) == 1 (fn_smry[1], "") else fn_smry end
     print(io, S"{julia_funcall:$fn_name} $fn_extra\n Defined in {about_module:$source}")
