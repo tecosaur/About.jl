@@ -64,7 +64,7 @@ function about(io::IO, type::Type)
         println(io)
         return
     end
-    println(io, S"\n\nStruct with {bold:$(fieldcount(type))} fields:")
+    print(io, S"\n\nStruct with {bold:$(fieldcount(type))} fields:")
     fieldinfo = AnnotatedString[]
     if type isa DataType
         sinfo = structinfo(type)

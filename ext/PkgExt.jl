@@ -84,8 +84,8 @@ function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     indirect_info = if indirect_depcount > 0
         S" {shadow:(+$indirect_depcount indirectly)}"
     else S"" end
-    println(io, S"\n{bold:Directly depends on {emphasis:$(length(directdeps))} \
-                       package$(ifelse(length(directdeps) == 1, \"\", \"s\"))}$indirect_info:")
+    print(io, S"\n{bold:Directly depends on {emphasis:$(length(directdeps))} \
+                     package$(ifelse(length(directdeps) == 1, \"\", \"s\"))}$indirect_info:")
     columnlist(io, depstrs)
 end
 

@@ -89,12 +89,12 @@ function columnlist(io::IO, entries::Vector{<:AbstractString};
         thecolumns, thecolwidths = [entries], maximum(textwidth, entries)
     end
     for rnum in 1:length(first(thecolumns))
+        println(io)
         for cnum in 1:length(thecolumns)
             rnum > length(thecolumns[cnum]) && continue
             cnum > 1 && print(io, ' '^spacing)
             print(io, prefix, rpad(thecolumns[cnum][rnum], thecolwidths[cnum]))
         end
-        println(io)
     end
 end
 

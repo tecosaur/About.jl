@@ -182,16 +182,16 @@ function about(io::IO, mod::Module)
         end
     end
     if !isempty(exports)
-        println(io, S"\n{bold:Exports {emphasis:$(length(exports))} name$(splural(exports)):}")
+        print(io, S"\n{bold:Exports {emphasis:$(length(exports))} name$(splural(exports)):}")
         columnlist(io, map(x->x.str, exports))
     end
     if !isempty(reexports)
         parents = join(sort(map(p->S"{about_module:$p}", unique(map(x->x.parent, reexports)))), ", ")
-        println(io, S"\n{bold:Re-exports {emphasis:$(length(reexports))} name$(splural(reexports))} (from $parents){bold::}")
+        print(io, S"\n{bold:Re-exports {emphasis:$(length(reexports))} name$(splural(reexports))} (from $parents){bold::}")
         columnlist(io, map(x->x.str, reexports))
     end
     if !isempty(publics)
-        println(io, S"\n{bold:Public API ({emphasis:$(length(publics))} name$(splural(publics))):}")
+        print(io, S"\n{bold:Public API ({emphasis:$(length(publics))} name$(splural(publics))):}")
         columnlist(io, map(x->x.str, publics))
     end
 end
