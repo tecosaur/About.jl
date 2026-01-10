@@ -109,10 +109,10 @@ end
 function memorylayout(io::IO, type::DataType)
     hassizeof(type) || return
     si = structinfo(type)
-    !isempty(si) || return
+    (isempty(si) || iszero(sizeof(type))) && return
     memstep = memstep = gcd((getfield.(si, :size), getfield.(si, :contentsize)) |>
         Iterators.flatten |> collect)
-    memscale = max(1, floor(Int, 70/(sizeof(type)/memstep)))
+    memscale = max(1, floor(Int, 70 / (sizeof(type) / memstep)))
     bars = AnnotatedString[]
     descs = AnnotatedString[]
     for (; i, size, contentsize, ispointer) in si
