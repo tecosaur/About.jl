@@ -315,7 +315,7 @@ function vecbytes(io::IO, items::DenseVector{T};
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
     nitems = length(items)
-    tsize, bytes = if hassizeof(T) && Base.array_subpadding(UInt8, T)
+    tsize, bytes = if hassizeof(T) && all(hassizeof, fieldtypes(T)) && Base.array_subpadding(UInt8, T)
         sizeof(T), reinterpret(UInt8, items)
     else
         sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items)))
