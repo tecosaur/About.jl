@@ -314,8 +314,11 @@ function vecbytes(io::IO, items::DenseVector{T};
                   byteface::Symbol = :light,
                   bitcolour::Bool = false,
                   bytevals::Bool = T != UInt8) where {T}
+    Base.issingletontype(T) && return
     nitems = length(items)
-    tsize, bytes = if hassizeof(T) && all(hassizeof, fieldtypes(T)) && Base.array_subpadding(UInt8, T)
+    tsize, bytes = if isabstracttype(T)
+        sizeof(Ptr), reinterpret(UInt8, unsafe_wrap(Vector{UInt64}, Ptr{UInt64}(items.ref.mem.ptr), nitems))
+    elseif hassizeof(T) && all(hassizeof, fieldtypes(T)) && Base.array_subpadding(UInt8, T)
         sizeof(T), reinterpret(UInt8, items)
     else
         sizeof(Ptr), unsafe_wrap(Vector{UInt8}, Ptr{UInt8}(pointer(items)), (sizeof(Ptr) * length(items)))
