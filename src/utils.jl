@@ -24,6 +24,8 @@ The implementation is based on a reading of `jl_f_sizeof` in `builtins.c`.
 function hassizeof(@nospecialize(T::Type))
     if Base.isabstracttype(T) || T == Union{}
         false
+    elseif T <: NamedTuple # Needed as a separate branch since `NamedTuple isa UnionAll`
+        Base.isconcretetype(T)
     elseif T isa UnionAll || T isa Union
         Tu = Base.unwrap_unionall(T)
         # It would be good to call `jl_uniontype_size`

@@ -60,7 +60,7 @@ function about(io::IO, type::Type)
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
     supertypeinfo(io, type)
-    if (!isstructtype(type) || fieldcount(type) == 0)
+    if (!isstructtype(type) || type isa UnionAll || fieldcount(type) == 0)
         println(io)
         return
     end
