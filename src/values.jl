@@ -153,7 +153,7 @@ function about(io::IO, mod::Module)
             2, :function, :julia_funcall, parentmodule(val)
         elseif val isa Type
             3, :type, :julia_type, if val isa UnionAll || val isa Union
-                m else parentmodule(val) end
+                m else safeparentmodule(val) end
         else
             4, :value, :julia_identifier, if Base.issingletontype(typeof(val))
                 parentmodule(typeof(val))

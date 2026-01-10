@@ -56,7 +56,7 @@ function about(io::IO, type::Type)
         print(io, "singleton ")
     end
     print(io, Base.summary(type))
-    print(io, S" defined in {about_module:$(parentmodule(type))}, ")
+    print(io, S" defined in {about_module:$(safeparentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
     supertypeinfo(io, type)
@@ -84,7 +84,19 @@ function about(io::IO, type::Type)
     end
 end
 
+function safeparentmodule(type::Type)
+    if type === Union{}
+        Core
+    else
+        parentmodule(type)
+    end
+end
+
 function supertypeinfo(io::IO, type::Type)
+    if type === Union{}
+        print(io, S"{julia_type:Union\{\}}")
+        return
+    end
     typestr(t) = highlight(sprint(show, Base.unwrap_unionall(t)))
     join(io, map(typestr, supertypes(type)),
          S" {julia_comparator:<:} ")
