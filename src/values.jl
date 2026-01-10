@@ -219,10 +219,19 @@ function memorylayout(io::IO, value::Bool)
     end
 end
 
+@static if VERSION >= v"1.11"
+    face_match!(::Any, match, face) = face!(match, face)
+else
+    function face_match!(whole::AnnotatedString, match::SubString{String}, face)
+        start, stop = match.offset + 1, match.offset + match.ncodeunits
+        face!(whole, start:stop, face)
+    end
+end
+
 function memorylayout(io::IO, value::Union{UInt8, UInt16, UInt32, UInt64, UInt128})
     bits = AnnotatedString(bitstring(value))
     for (; match) in eachmatch(r"0+", bits)
-        face!(match, :shadow)
+        face_match!(bits, match, :shadow)
     end
     if get(io, :compact, false) == true
         print(io, bits)
@@ -239,7 +248,7 @@ function memorylayout(io::IO, value::Union{Int8, Int16, Int32, Int64, Int128})
         if match.offset == 0
             match = bits[2:match.ncodeunits]
         end
-        face!(match, :shadow)
+        face_match!(bits, match, :shadow)
     end
     if get(io, :compact, false) == true
         print(io, bits)
@@ -386,7 +395,7 @@ function vecbytes(io::IO, items::DenseVector{T};
         end
     end
     for bstr in (lbstring, rbstring), (; match) in eachmatch(r"0+", bstr)
-        face!(match, :shadow)
+        face_match!(bstr, match, :shadow)
     end
     print(io, "\n ", lbstring, if showbytes < nbytes ' '^(7 + ndigits(nbytes-showbytes)) else "" end, rbstring)
     if bytevals
@@ -533,7 +542,7 @@ function memorylayout(io::IO, char::Char)
             leading = cbits[1:leadingbits]
             rest = AnnotatedString(cbits[leadingbits+1:end])
             for (; match) in eachmatch(r"1+", rest)
-                face!(match, :underline)
+                face_match!(rest, match, :underline)
             end
             cstr = S"{shadow:$leading}$rest"
             for (range, color) in coloring
