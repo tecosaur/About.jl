@@ -114,7 +114,7 @@ function multirow_wrap(io::IO, cells::Matrix{<:AbstractString};
     filter!(!isempty, segments)
     for segment in segments
         for row in eachrow(cells[:, segment])
-            println(io, indent, join(row))
+            print(io, '\n', indent, join(row))
         end
     end
 end

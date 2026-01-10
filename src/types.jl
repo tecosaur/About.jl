@@ -60,7 +60,10 @@ function about(io::IO, type::Type)
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
     supertypeinfo(io, type)
-    (!isstructtype(type) || fieldcount(type) == 0) && return
+    if (!isstructtype(type) || fieldcount(type) == 0)
+        println(io)
+        return
+    end
     println(io, S"\n\nStruct with {bold:$(fieldcount(type))} fields:")
     fieldinfo = AnnotatedString[]
     if type isa DataType
@@ -82,6 +85,7 @@ function about(io::IO, type::Type)
     if type isa DataType
         memorylayout(io, type)
     end
+    println(io)
 end
 
 function safeparentmodule(type::Type)
@@ -139,9 +143,8 @@ function memorylayout(io::IO, type::DataType)
         end
         push!(bars, bar)
     end
-    println(io)
     multirow_wrap(io, permutedims(hcat(bars, descs)))
     if any(i -> i.ispointer, si)
-        println(io, S"\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
+        print(io, S"\n\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
     end
 end
