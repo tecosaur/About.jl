@@ -146,7 +146,7 @@ function about(io::IO, mod::Module)
             return (; name, str = S"$name {shadow:(undefined)}", kind=:undefined, parent=m, order=5)
         val = getglobal(m, name)
         order, kind, face, parent = if val isa Module
-            0, :module, :about_module, val
+            0, :module, :About_module, val
         elseif val isa Function && first(String(name)) == '@'
             1, :macro, :julia_macro, parentmodule(val)
         elseif val isa Function

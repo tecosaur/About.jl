@@ -23,7 +23,7 @@ function about(io::IO, fn::Function)
         end
     end
     print(io, ".\n")
-    if !get(io, :about_inner, false)
+    if !get(io, :About_inner, false)
         println(io, S"\n {tip:■ Hint:} {grey:to get more information on a particular method try} {light:$(highlight(\"about($fn, argtypes...)\"))}")
     end
 end
@@ -41,7 +41,7 @@ function about(io::IO, @nospecialize(cfn::ComposedFunction))
     println(io)
     for fn in fnstack
         print(io, S" {emphasis:•} ")
-        about(IOContext(io, :about_inner => true), fn)
+        about(IOContext(io, :About_inner => true), fn)
     end
 end
 
@@ -53,7 +53,7 @@ function about(io::IO, method::Method)
 end
 
 function about(io::IO, fn::Union{Function, Type}, @nospecialize(argtypes::Type{<:Tuple}))
-    iio = IOContext(io, :about_inner => true)
+    iio = IOContext(io, :About_inner => true)
     about(iio, fn); println(io)
     ms = methods(fn, argtypes)
     if isempty(ms)
@@ -123,7 +123,7 @@ function about(io::IO, effects::Core.Compiler.Effects)
         name_pad_width = 13
         dispwidth = last(displaysize(io))
         declr = S" {bold,$accent:$icon $(rpad(name, name_pad_width))}  "
-        get(io, :about_inner, false) === true && print(io, ' ')
+        get(io, :About_inner, false) === true && print(io, ' ')
         print(io, declr)
         indent = name_pad_width + 5
         desc = S"{grey:$prefix$(ifelse(isempty(prefix), \"\", \" \"))$msg$(ifelse(isempty(suffix), \"\", \" \"))$suffix}"
@@ -133,7 +133,7 @@ function about(io::IO, effects::Core.Compiler.Effects)
             println(io, line)
         end
     end
-    get(io, :about_inner, false) === true && print(io, ' ')
+    get(io, :About_inner, false) === true && print(io, ' ')
     println(io, S"{bold:Method effects}")
     effectinfo(io, :consistent, "consistent",
                 C4.ALWAYS_TRUE => S"guaranteed to",

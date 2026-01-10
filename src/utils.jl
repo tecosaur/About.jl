@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const FACE_CYCLE = [:about_cycle1, :about_cycle2, :about_cycle3, :about_cycle4]
+const FACE_CYCLE = [:About_cycle1, :About_cycle2, :About_cycle3, :About_cycle4]
 
 function humansize(bytes::Integer)
     units = ("B", "kB", "MB", "GB")

@@ -239,14 +239,14 @@ By convention, this is not invoked when displaying `x` compactly.
 elaboration(::IO, ::Any) = nothing
 
 const ABOUT_FACES = [
-    :about_module => Face(foreground=:bright_red),
-    :about_pointer => Face(foreground=:cyan),
-    :about_count => Face(weight=:bold),
-    :about_bytes => Face(weight=:bold),
-    :about_cycle1 => Face(inherit=:bright_blue),
-    :about_cycle2 => Face(inherit=:bright_green),
-    :about_cycle3 => Face(inherit=:bright_yellow),
-    :about_cycle4 => Face(inherit=:bright_magenta),
+    :About_module => Face(foreground=:bright_red),
+    :About_pointer => Face(foreground=:cyan),
+    :About_count => Face(weight=:bold),
+    :About_bytes => Face(weight=:bold),
+    :About_cycle1 => Face(inherit=:bright_blue),
+    :About_cycle2 => Face(inherit=:bright_green),
+    :About_cycle3 => Face(inherit=:bright_yellow),
+    :About_cycle4 => Face(inherit=:bright_magenta),
 ]
 
 __init__() = foreach(addface!, ABOUT_FACES)
