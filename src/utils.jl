@@ -22,20 +22,25 @@ Predict whether `sizeof(type)` is valid/will succeed.
 The implementation is based on a reading of `jl_f_sizeof` in `builtins.c`.
 """
 function hassizeof(@nospecialize(T::Type))
-    if Base.isabstracttype(T) || T == Union{}
+    if Base.isabstracttype(T)
         false
     elseif T <: NamedTuple # Needed as a separate branch since `NamedTuple isa UnionAll`
         Base.isconcretetype(T)
     elseif T isa UnionAll || T isa Union
         Tu = Base.unwrap_unionall(T)
-        # It would be good to call `jl_uniontype_size`
-        Tu isa DataType
+        # It would be good to call `jl_uniontype_size`,
+        # we'll approximate it with `allocatedinline`.
+        Base.allocatedinline(Tu) || Tu isa DataType && hassizeof(Tu)
     elseif T ∈ (Symbol, String, Core.SimpleVector)
         false
     elseif @static if VERSION >= v"1.11" T <: GenericMemory else false end
         false
     elseif T isa DataType
-        Base.isconcretetype(T)
+        unsafe_datatype_nfields(t::DataType) = Base.unsafe_load(Ptr{UInt32}(t.layout), 2)
+        unsafe_datatype_npointers(t::DataType) = Base.unsafe_load(Ptr{UInt32}(t.layout), 3)
+        unsafe_is_layout_opaque(t::DataType) = unsafe_datatype_nfields(t) == 0 && unsafe_datatype_npointers(t) > 0
+        notypevars(t::DataType) = !any(f -> f isa TypeVar || (f isa DataType && !notypevars(f)), t.types)
+        (Base.isconcretetype(T) || T.layout != C_NULL || notypevars(T)) && !unsafe_is_layout_opaque(T)
     else
         Base.allocatedinline(T)
     end
