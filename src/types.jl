@@ -103,6 +103,7 @@ function about(io::IO, type::Type)
         columnlist(io, fieldinfo, spacing=3)
     end
     if type isa DataType
+        println(io)
         memorylayout(io, type)
     end
     println(io)
