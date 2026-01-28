@@ -151,7 +151,7 @@ function memorylayout(io::IO, type::DataType)
     for (; i, size, contentsize, tagsize, ispointer) in si
         size <= 0 && continue
         color = FACE_CYCLE[mod1(i, length(FACE_CYCLE))]
-        width = max(2, memscale * size÷memstep)
+        width = clamp(memscale * size÷memstep, 2:2*size)
         fsize, funits = humansize(size)
         desc = if ispointer
             cpad(S" {$color,bold:*} ", width)
