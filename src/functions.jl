@@ -7,7 +7,8 @@ function about(io::IO, fn::Function)
     source, others = if startswith(String(nameof(fn)), '#') && length(methodmodules) == 1
         first(methodmodules), Symbol[]
     else
-        nameof(Main.InteractiveUtils.which(parentmodule(fn), nameof(fn))), setdiff(methodmodules, [source])
+        src = nameof(Main.InteractiveUtils.which(parentmodule(fn), nameof(fn)))
+        src, setdiff(methodmodules, [src])
     end
     fn_smry = split(Base.summary(fn), ' ', limit=2)
     fn_name, fn_extra = if length(fn_smry) == 1 (fn_smry[1], "") else fn_smry end
