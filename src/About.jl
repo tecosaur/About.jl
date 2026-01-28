@@ -241,6 +241,7 @@ elaboration(::IO, ::Any) = nothing
 const ABOUT_FACES = [
     :About_module => Face(foreground=:bright_red),
     :About_pointer => Face(foreground=:cyan),
+    :About_tag => Face(foreground=:bright_red),
     :About_count => Face(weight=:bold),
     :About_bytes => Face(weight=:bold),
     :About_cycle1 => Face(inherit=:bright_blue),

@@ -9,26 +9,46 @@ struct FieldInfo
     size::Int
     contentsize::Int
     ispointer::Bool
+    tagsize::Int
     name::Union{Symbol, Int}
     type::Type
 end
 
-function structinfo(T::Type)
+struct AlignmentRevealer{T}
+    t::T
+    _::UInt8
+end
+
+function structinfo(@nospecialize(T::Type))
     map(1:fieldcount(T)) do i
+        ispointer = false
+        tagsize = 0
         if hassizeof(T)
             offset = fieldoffset(T, i) |> Int
             size = Int(if i < fieldcount(T)
                            fieldoffset(T, i+1)
-                    else
+                       else
                            sizeof(T)
-                    end - fieldoffset(T, i))
-            contentsize = if hassizeof(fieldtype(T, i))
-                sizeof(fieldtype(T, i))
+                       end - fieldoffset(T, i))
+            Tf = fieldtype(T, i)
+            if Tf isa Union && hassizeof(Tf)
+                contentsize = sizeof(Tf)
+                if contentsize < fieldoffset(AlignmentRevealer{Tf}, 2)
+                    tagsize = fieldoffset(AlignmentRevealer{Tf}, 2) - contentsize
+                else
+                    ispointer = true
+                end
             else
-                0
-            end
-            if contentsize > size # Pointer?
-                contentsize = 0
+                if hassizeof(Tf)
+                    contentsize = sizeof(Tf)
+                    if contentsize > size
+                        contentsize = sizeof(Ptr{Nothing})
+                        ispointer = true
+                    end
+                else
+                    contentsize = sizeof(Ptr{Nothing})
+                    ispointer = true
+                end
             end
         else
             offset = size = contentsize = -1 # Cannot deduce easily
@@ -36,7 +56,7 @@ function structinfo(T::Type)
         FieldInfo(i, FACE_CYCLE[mod1(i, length(FACE_CYCLE))],
                   offset,
                   size, contentsize,
-                  contentsize == 0, # ispointer
+                  ispointer, tagsize,
                   fieldname(T, i), fieldtype(T, i))
     end
 end
@@ -127,7 +147,7 @@ function memorylayout(io::IO, type::DataType)
     memscale = max(1, floor(Int, 70 / (sizeof(type) / memstep)))
     bars = AnnotatedString[]
     descs = AnnotatedString[]
-    for (; i, size, contentsize, ispointer) in si
+    for (; i, size, contentsize, tagsize, ispointer) in si
         size <= 0 && continue
         color = FACE_CYCLE[mod1(i, length(FACE_CYCLE))]
         width = max(2, memscale * size÷memstep)
@@ -136,8 +156,14 @@ function memorylayout(io::IO, type::DataType)
             cpad(S" {$color,bold:*} ", width)
         elseif contentsize < size
             csize, cunits = humansize(contentsize)
-            psize, punits = humansize(size - contentsize)
-            cpad(S" {$color:$csize$cunits}{shadow:+$psize$punits} ", width, ' ', RoundUp)
+            psize, punits = humansize(size - contentsize - tagsize)
+            if psize == 0 # entirely tag bytes
+                cpad(S" {$color:$csize$cunits}{About_tag:+⚑$(tagsize)B} ", width, ' ', RoundUp)
+            elseif tagsize > 0 # tag and padding bytes
+                cpad(S" {$color:$csize$cunits}{About_tag:+⚑$(tagsize)B}{shadow:+$psize$punits} ", width, ' ', RoundUp)
+            else # only padding bytes
+                cpad(S" {$color:$csize$cunits}{shadow:+$psize$punits} ", width, ' ', RoundUp)
+            end
         else
             cpad(S" {$color:$fsize$funits} ", width)
         end
@@ -146,7 +172,11 @@ function memorylayout(io::IO, type::DataType)
         contentwidth = round(Int, width * contentsize / size)
         bar = S"{$color:$('■'^contentwidth)}"
         if contentsize < size
-            paddwidth = width - contentwidth
+            tagwidth = round(Int, width * tagsize / size)
+            paddwidth = width - contentwidth - tagwidth
+            if tagwidth > 0 # ⚑ ⮼ ▬
+                bar *= S"{About_tag:$('■'^tagwidth)}"
+            end
             if ispointer
                 bar *= S"{About_pointer,light:$('■'^paddwidth)}"
             else
@@ -156,7 +186,12 @@ function memorylayout(io::IO, type::DataType)
         push!(bars, bar)
     end
     multirow_wrap(io, permutedims(hcat(bars, descs)))
-    if any(i -> i.ispointer, si)
-        print(io, S"\n\n {About_pointer,bold:*} = {About_pointer:Pointer} {light:(8B)}")
+    if any(i -> i.ispointer || i.tagsize > 0, si)
+        println(io)
+        any(i -> i.ispointer, si) &&
+            print(io, S"\n {About_pointer,bold:*} = {About_pointer:Pointer} {light:(8B)}")
+        any(i -> i.tagsize > 0, si) &&
+            print(io, S"\n {About_tag:⚑} = Tag bytes")
     end
+    nothing
 end
