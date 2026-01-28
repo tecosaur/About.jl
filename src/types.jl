@@ -91,18 +91,30 @@ end
 function safeparentmodule(type::Type)
     if type === Union{}
         Core
+    elseif type isa Union
+        utypes = [safeparentmodule(t) for t in Base.uniontypes(type)]
+        if allequal(utypes)
+            first(utypes)
+        else
+            Core
+        end
     else
         parentmodule(type)
     end
 end
 
 function supertypeinfo(io::IO, type::Type)
-    if type === Union{}
+    typestr(t) = highlight(sprint(show, Base.unwrap_unionall(t)))
+    ptype = if type === Union{}
         print(io, S"{julia_type:Union\{\}}")
         return
+    elseif type isa Union
+        print(io, typestr(type), S" {julia_comparator:<:} ")
+        foldl(typejoin, Base.uniontypes(type))
+    else
+        type
     end
-    typestr(t) = highlight(sprint(show, Base.unwrap_unionall(t)))
-    join(io, map(typestr, supertypes(type)),
+    join(io, map(typestr, supertypes(ptype)),
          S" {julia_comparator:<:} ")
 end
 
