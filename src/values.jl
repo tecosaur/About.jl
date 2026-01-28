@@ -222,7 +222,7 @@ end
 @static if VERSION >= v"1.11"
     face_match!(::Any, match, face) = face!(match, face)
 else
-    function face_match!(whole::AnnotatedString, match::SubString{String}, face)
+    function face_match!(whole::AnnotatedString, match::SubString, face)
         start, stop = match.offset + 1, match.offset + match.ncodeunits
         face!(whole, start:stop, face)
     end
