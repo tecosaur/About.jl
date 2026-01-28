@@ -56,7 +56,7 @@ function about(io::IO, type::Type)
         print(io, "singleton ")
     end
     print(io, Base.summary(type))
-    print(io, S" defined in {about_module:$(safeparentmodule(type))}, ")
+    print(io, S" defined in {About_module:$(safeparentmodule(type))}, ")
     hassizeof(type) && print(io, "$(join(humansize(sizeof(type))))")
     print(io, "\n  ")
     supertypeinfo(io, type)
@@ -70,7 +70,7 @@ function about(io::IO, type::Type)
         sinfo = structinfo(type)
         namepad = maximum(fi -> textwidth(string(fi.name)), sinfo) + 1
         for (; face, name, type, ispointer) in sinfo
-            push!(fieldinfo, rpad(S"{$face:$name}", namepad) * S"{about_pointer:$(ifelse(ispointer, \"*\", \" \"))}$type")
+            push!(fieldinfo, rpad(S"{$face:$name}", namepad) * S"{About_pointer:$(ifelse(ispointer, \"*\", \" \"))}$type")
         end
     else
         for (; name, type) in structinfo(type)
@@ -148,7 +148,7 @@ function memorylayout(io::IO, type::DataType)
         if contentsize < size
             paddwidth = width - contentwidth
             if ispointer
-                bar *= S"{about_pointer,light:$('■'^paddwidth)}"
+                bar *= S"{About_pointer,light:$('■'^paddwidth)}"
             else
                 bar *= S"{shadow:$('■'^paddwidth)}"
             end
@@ -157,6 +157,6 @@ function memorylayout(io::IO, type::DataType)
     end
     multirow_wrap(io, permutedims(hcat(bars, descs)))
     if any(i -> i.ispointer, si)
-        print(io, S"\n\n {about_pointer,bold:*} = {about_pointer:Pointer} {light:(8B)}")
+        print(io, S"\n\n {About_pointer,bold:*} = {About_pointer:Pointer} {light:(8B)}")
     end
 end

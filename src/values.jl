@@ -20,20 +20,20 @@ function about(io::IO, value::T) where {T}
     datasize = sizeof(value)
     netsize = Base.summarysize(value)
     infosize = if typesize == datasize == netsize
-        S"{about_bytes:$(join(humansize(typesize)))}."
+        S"{About_bytes:$(join(humansize(typesize)))}."
     elseif typesize == datasize <= netsize
-        S"{about_bytes:$(join(humansize(typesize)))} directly \
-          (referencing {about_bytes:$(join(humansize(netsize)))} in total)"
+        S"{About_bytes:$(join(humansize(typesize)))} directly \
+          (referencing {About_bytes:$(join(humansize(netsize)))} in total)"
     elseif typesize == datasize > netsize
-        S"{about_bytes:$(join(humansize(typesize)))} directly \
-          ({warning:!} referencing {about_bytes:$(join(humansize(netsize)))} in total, \
+        S"{About_bytes:$(join(humansize(typesize)))} directly \
+          ({warning:!} referencing {About_bytes:$(join(humansize(netsize)))} in total, \
           {warning:strangely less than the direct, \
           {underline,link={https://github.com/tecosaur/About.jl}:\
           please open an issue on About.jl with this example}})"
     else # all different
-        S"{about_bytes:$(join(humansize(typesize)))} directly \
-          (referencing {about_bytes:$(join(humansize(netsize)))} in total, \
-          holding {about_bytes:$(join(humansize(datasize)))} of data)"
+        S"{About_bytes:$(join(humansize(typesize)))} directly \
+          (referencing {About_bytes:$(join(humansize(netsize)))} in total, \
+          holding {About_bytes:$(join(humansize(datasize)))} of data)"
     end
     print(io, infotype)
     if textwidth(infotype) < last(displaysize(io)) &&
@@ -92,9 +92,9 @@ function memorylayout(io::IO, value::T) where {T}
         elseif ispointer
             try
                 pt = pointer(fvalue)
-                push!(freprs, S"{about_pointer:@ $(sprint(show, UInt64(pt)))}")
+                push!(freprs, S"{About_pointer:@ $(sprint(show, UInt64(pt)))}")
             catch
-                push!(freprs, S"{about_pointer:Ptr?}")
+                push!(freprs, S"{About_pointer:Ptr?}")
             end
         else
             memorylayout(IOContext(aio, :compact => true), fvalue)
@@ -134,7 +134,7 @@ function about(io::IO, mod::Module)
     end
     !isnothing(pkg) && !applicable(about_pkg, io, pkg, mod) &&
         Base.require(Base.PkgId(Base.UUID("44cfe95a-1eb2-52ea-b672-e2afdf69b78f"), "Pkg"))
-    print(io, S"{bold:Module {about_module:$mod}}")
+    print(io, S"{bold:Module {About_module:$mod}}")
     if !isnothing(pkg)
         println(io, S" {shadow:[$(something(pkg.uuid, \"no uuid\"))]}")
         Base.invokelatest(about_pkg, io, pkg, mod)
@@ -186,7 +186,7 @@ function about(io::IO, mod::Module)
         columnlist(io, map(x->x.str, exports))
     end
     if !isempty(reexports)
-        parents = join(sort(map(p->S"{about_module:$p}", unique(map(x->x.parent, reexports)))), ", ")
+        parents = join(sort(map(p->S"{About_module:$p}", unique(map(x->x.parent, reexports)))), ", ")
         print(io, S"\n{bold:Re-exports {emphasis:$(length(reexports))} name$(splural(reexports))} (from $parents){bold::}")
         columnlist(io, map(x->x.str, reexports))
     end
@@ -353,7 +353,7 @@ function vecbytes(io::IO, items::DenseVector{T};
                 if hassizeof(T)
                     AnnotatedString(sval)
                 else
-                    S"{about_pointer:&}$sval"
+                    S"{About_pointer:&}$sval"
                 end
             else
                 S"#undef"
@@ -423,7 +423,7 @@ end
 
     function memorylayout(io::IO, mem::GenericMemory{kind, T, addrspace}) where {kind, T, addrspace}
         if mem.length == 0
-            println(io, S" {shadow:(empty)} {about_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
+            println(io, S" {shadow:(empty)} {About_pointer:@ $(sprint(show, UInt64(mem.ptr)))}")
             return
         end
         nonptr = hassizeof(T)
@@ -431,7 +431,7 @@ end
         println(io, "\n ",
                 if kind === :atomic "Atomic memory block" else "Memory block" end,
                 S" ({emphasis:$(addrspacelabel(addrspace))}-addressed) \
-                  from {about_pointer:$(sprint(show, UInt64(mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
+                  from {About_pointer:$(sprint(show, UInt64(mem.ptr)))} to {About_pointer:$(sprint(show, UInt64(mem.ptr + mem.length * tsize)))}.")
         vecbytes(io, mem, eltext = if nonptr "item" else "pointer" end)
     end
 
@@ -448,7 +448,7 @@ end
         end
         println(S"\n {julia_type:$T} contents exist on the {emphasis:$(addrspacelabel(arr.ref.mem))} \
                   within the {$(first(FACE_CYCLE)):$(fieldname(typeof(arr), 1))}{shadow:::}{$(first(FACE_CYCLE)):$memtypename} \
-                  from {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr)))} to {about_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr + arr.ref.mem.length * tsize)))}.")
+                  from {About_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr)))} to {About_pointer:$(sprint(show, UInt64(arr.ref.mem.ptr + arr.ref.mem.length * tsize)))}.")
         vecbytes(io, arr, eltext = if nonptr "item" else "pointer" end)
     end
 end
@@ -458,7 +458,7 @@ end
 # ------------------
 
 function about(io::IO, value::Symbol)
-    println(io, S"Symbol ({julia_comparator:<:} {julia_type:Any}), an {about_bytes:$(sizeof(Ptr))B} reference to a {about_bytes:$(sizeof(value))B} interned string")
+    println(io, S"Symbol ({julia_comparator:<:} {julia_type:Any}), an {About_bytes:$(sizeof(Ptr))B} reference to a {About_bytes:$(sizeof(value))B} interned string")
 end
 
 # ------------------
@@ -652,12 +652,12 @@ function elaboration(io::IO, str::String)
         c -> get(charfreq, first(c), 0), CONTROL_CHARACTERS)
     if !all(iszero, control_character_counts)
         println(io, S" {emphasis:•} Contains \
-          {about_count:$(sum(control_character_counts))} \
-          instances of {about_count:$(sum(>(0), control_character_counts))} \
+          {About_count:$(sum(control_character_counts))} \
+          instances of {About_count:$(sum(>(0), control_character_counts))} \
           control characters:")
         for ((char, info), count) in zip(CONTROL_CHARACTERS, control_character_counts)
             count > 0 &&
-                println(io, S"   {emphasis:∗} {julia_char:$(sprint(show, char))} ({about_count:$count}): $(join(info, ' '))")
+                println(io, S"   {emphasis:∗} {julia_char:$(sprint(show, char))} ({About_count:$count}): $(join(info, ' '))")
         end
     end
     if startswith(str, '\ufeff')

@@ -12,11 +12,11 @@ function about(io::IO, fn::Function)
     end
     fn_smry = split(Base.summary(fn), ' ', limit=2)
     fn_name, fn_extra = if length(fn_smry) == 1 (fn_smry[1], "") else fn_smry end
-    print(io, S"{julia_funcall:$fn_name} $fn_extra\n Defined in {about_module:$source}")
+    print(io, S"{julia_funcall:$fn_name} $fn_extra\n Defined in {About_module:$source}")
     if length(others) > 0
         print(io, S"{shadow:({emphasis:$(sum(Ref(source) .=== methodmodules))})} extended in ")
         for (i, oth) in enumerate(others)
-            print(io, S"{about_module:$oth}{shadow:({emphasis:$(sum(Ref(oth) .=== methodmodules))})}")
+            print(io, S"{About_module:$oth}{shadow:({emphasis:$(sum(Ref(oth) .=== methodmodules))})}")
             if length(others) == 2 && i == 1
                 print(io, " and ")
             elseif length(others) > 2 && i < length(others)-1
@@ -87,7 +87,7 @@ function about(io::IO, fn::Union{Function, Type}, @nospecialize(argtypes::Type{<
             S"{shadow,underline:$msrc}"
         else
             mmod, mfile = msrcinfo.captures
-            S"{about_module:$mmod} {shadow,underline:$mfile}"
+            S"{About_module:$mmod} {shadow,underline:$mfile}"
         end
         println(io, S"  $(highlight(mcall)) {shadow,bold:@} $msrcpretty")
     end

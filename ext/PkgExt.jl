@@ -12,7 +12,7 @@ using PrecompileTools: @compile_workload
 
 function About.about_pkg(io::IO, pkg::Base.PkgId, mod::Module)
     isnothing(pkgversion(mod)) ||
-        print(io, S"  Version {about_module:$(pkgversion(mod))}")
+        print(io, S"  Version {About_module:$(pkgversion(mod))}")
     srcdir = pkgdir(mod)
     stdlibdir = Base.load_path_expand("@stdlib")
     if isnothing(srcdir)
