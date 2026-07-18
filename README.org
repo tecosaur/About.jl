@@ -63,7 +63,7 @@ julia> about(Dict{Symbol, Int})
 Concrete DataType defined in Base, 64B
   Dict{Symbol, Int64} <: AbstractDict{Symbol, Int64} <: Any
 
-Struct with 8 fields:
+Mutable struct with 8 fields:
 • slots    *Memory{UInt8}
 • keys     *Memory{Symbol}
 • vals     *Memory{Int64}
