@@ -84,7 +84,9 @@ function about(io::IO, type::Type)
         println(io)
         return
     end
-    print(io, S"\n\nStruct with {bold:$(fieldcount(type))} fields:")
+    mutability = ismutabletype(type) ? "Mutable" : "Immutable"
+    fieldstr = isone(fieldcount(type)) ? "field" : "fields"
+    print(io, S"\n\n$mutability struct with {bold:$(fieldcount(type))} $fieldstr:")
     fieldinfo = AnnotatedString[]
     if type isa DataType
         sinfo = structinfo(type)
